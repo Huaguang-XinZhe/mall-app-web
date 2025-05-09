@@ -57,12 +57,6 @@
     },
 
     {
-      "path": "pages/userinfo/userinfo",
-      "style": {
-        "navigationBarTitleText": "修改资料"
-      }
-    },
-    {
       "path": "pages/cart/cart",
       "style": {
         "navigationBarTitleText": "购物车"
@@ -70,17 +64,6 @@
     },
     {
       "path": "pages/public/login",
-      "style": {
-        "navigationBarTitleText": "",
-        "navigationStyle": "custom",
-        "app-plus": {
-          "titleNView": false,
-          "animationType": "slide-in-bottom"
-        }
-      }
-    },
-    {
-      "path": "pages/public/register",
       "style": {
         "navigationBarTitleText": "",
         "navigationStyle": "custom",

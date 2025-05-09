@@ -11,24 +11,20 @@
 			</view>
 			<view class="input-content">
 				<view class="input-item">
-					<text class="tit">用户名</text>
-					<input type="text" v-model="username" placeholder="请输入用户名" maxlength="11"/>
-				</view>
-				<view class="input-item">
-					<text class="tit">密码</text>
-					<input type="text" v-model="password" placeholder="8-18位不含特殊字符的数字、字母组合" placeholder-class="input-empty" maxlength="20"
-					 password @confirm="toLogin" />
+					<text class="tit">邀请码</text>
+					<input 
+						type="text" 
+						v-model="username" 
+						placeholder="请输入6位邀请码（字母和数字）" 
+						maxlength="6"
+						@input="validateInviteCode"
+					/>
 				</view>
 			</view>
-			<button class="confirm-btn" @click="toLogin" :disabled="logining">登录</button>
-			<button class="confirm-btn2" @click="toRegist" >获取体验账号</button>
-			<view class="forget-section" @click="toRegist">
-				忘记密码?
-			</view>
+			<button class="confirm-btn" @click="toLogin" :disabled="logining || !isValidCode">注册</button>
 		</view>
 		<view class="register-section">
-			还没有账号?
-			<text @click="toRegist">马上注册</text>
+			注册后将自动登录
 		</view>
 	</view>
 </template>
@@ -45,12 +41,14 @@
 			return {
 				username: '',
 				password: '',
-				logining: false
+				logining: false,
+				isValidCode: false
 			}
 		},
 		onLoad() {
 			this.username = uni.getStorageSync('username') || '';
 			this.password = uni.getStorageSync('password') || '';
+			this.validateInviteCode();
 		},
 		methods: {
 			...mapMutations(['login']),
@@ -60,7 +58,20 @@
 			toRegist() {
 				uni.navigateTo({url:'/pages/public/register'});
 			},
+			validateInviteCode() {
+				// 验证邀请码：6位，由大小写字母和数字组成
+				const regex = /^[a-zA-Z0-9]{6}$/;
+				this.isValidCode = regex.test(this.username);
+			},
 			async toLogin() {
+				if (!this.isValidCode) {
+					uni.showToast({
+						title: '请输入有效的6位邀请码',
+						icon: 'none'
+					});
+					return;
+				}
+				
 				this.logining = true;
 				memberLogin({
 					username: this.username,
