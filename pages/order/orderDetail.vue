@@ -58,10 +58,6 @@
 				<text class="cell-tit clamp">优惠券</text>
 				<text class="cell-tip red">-￥{{order.couponAmount}}</text>
 			</view>
-			<view class="yt-list-cell b-b">
-				<text class="cell-tit clamp">积分抵扣</text>
-				<text class="cell-tip red">-￥{{order.integrationAmount}}</text>
-			</view>
 			<view class="yt-list-cell desc-cell">
 				<text class="cell-tit clamp">备注</text>
 				<text class="cell-tip">{{order.note}}</text>
@@ -101,10 +97,6 @@
 			<view class="action-box b-t" v-if="order.status == 2">
 				<button class="action-btn">查看物流</button>
 				<button class="action-btn recom" @click="receiveOrder(order.id)">确认收货</button>
-			</view>
-			<view class="action-box b-t" v-if="order.status == 3">
-				<button class="action-btn">申请售后</button>
-				<button class="action-btn recom">评价商品</button>
 			</view>
 			<view class="price-content" v-if="order.status==0">
 				<text>应付金额</text>

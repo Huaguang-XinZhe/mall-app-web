@@ -44,9 +44,6 @@
 							<button class="action-btn" >查看物流</button>
 							<button class="action-btn recom" @click="receiveOrder(item.id)">确认收货</button>
 						</view>
-						<view class="action-box b-t" v-if="item.status == 3">
-							<button class="action-btn recom" >评价商品</button>
-						</view>
 					</view>
 
 					<uni-load-more :status="loadingType"></uni-load-more>

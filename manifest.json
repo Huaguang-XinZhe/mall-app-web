@@ -59,6 +59,14 @@
         "appid" : "",
         "setting" : {
             "urlCheck" : true
+        },
+        "permission" : {
+            "scope.userLocation" : {
+                "desc" : "查看地图定位，用于选择收货地址"
+            }
+        },
+        "unipush" : {
+            "enable" : true
         }
     },
     "h5" : {
@@ -70,5 +78,6 @@
         "router" : {
             "base" : ""
         }
-    }
+    },
+	"sassImplementationName": "node-sass"
 }

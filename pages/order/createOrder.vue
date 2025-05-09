@@ -49,14 +49,7 @@
 				</text>
 				<text class="cell-more wanjia wanjia-gengduo-d"></text>
 			</view>
-			<view class="yt-list-cell b-b">
-				<view class="cell-icon hb">
-					积
-				</view>
-				<text class="cell-tit clamp">积分抵扣</text>
-				<input class="integration" type="number" v-model="useIntegration" placeholder="使用积分数量" placeholder-class="placeholder"
-				 @input="handleIntegrationInput" />
-			</view>
+			
 		</view>
 		<!-- 金额明细 -->
 		<view class="yt-list">
@@ -76,10 +69,6 @@
 				<text class="cell-tit clamp">优惠券</text>
 				<text class="cell-tip red" v-if="currCoupon!=null">-￥{{currCoupon.amount}}</text>
 				<text class="cell-tip red" v-else>-￥0</text>
-			</view>
-			<view class="yt-list-cell b-b">
-				<text class="cell-tit clamp">积分抵扣</text>
-				<text class="cell-tip red">-￥{{calcIntegrationAmount(useIntegration)}}</text>
 			</view>
 			<view class="yt-list-cell desc-cell">
 				<text class="cell-tit clamp">备注</text>

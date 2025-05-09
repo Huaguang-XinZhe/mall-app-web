@@ -11,7 +11,7 @@
 					<text class="username">{{userInfo.nickname || '游客'}}</text>
 				</view>
 			</view>
-			<view class="vip-card-box">
+			<!-- <view class="vip-card-box">
 				<image class="card-bg" src="/static/vip-card-bg.png" mode=""></image>
 				<view class="b-btn">
 					立即开通
@@ -22,7 +22,7 @@
 				</view>
 				<text class="e-m">mall移动端商城</text>
 				<text class="e-b">黄金及以上会员可享有会员价优惠商品。</text>
-			</view>
+			</view> -->
 		</view>
 		
 		<view 
@@ -39,12 +39,13 @@
 			
 			<view class="tj-sction">
 				<view class="tj-item">
-					<text class="num">{{userInfo.integration || '暂无'}}</text>
-					<text>积分</text>
+					<text class="num">{{inviteCode || '暂无'}}</text>
+					<text>邀请码</text>
 				</view>
-				<view class="tj-item">
-					<text class="num">{{userInfo.growth || '暂无'}}</text>
-					<text>成长值</text>
+				<view class="tj-item share-btn-container">
+					<view class="share-btn" @click="shareWithFriends">
+						<text>分享</text>
+					</view>
 				</view>
 				<view class="tj-item" @click="navTo('/pages/coupon/couponList')">
 					<text class="num">{{couponCount || '暂无'}}</text>
@@ -76,7 +77,6 @@
 				<list-cell icon="icon-lishijilu" iconColor="#e07472" title="我的足迹" @eventClick="navTo('/pages/user/readHistory')"></list-cell>
 				<list-cell icon="icon-shoucang" iconColor="#5fcda2" title="我的关注" @eventClick="navTo('/pages/user/brandAttention')"></list-cell>
 				<list-cell icon="icon-shoucang_xuanzhongzhuangtai" iconColor="#54b4ef" title="我的收藏" @eventClick="navTo('/pages/user/productCollection')"></list-cell>
-				<list-cell icon="icon-pingjia" iconColor="#ee883b" title="我的评价"></list-cell>
 				<list-cell icon="icon-shezhi1" iconColor="#e07472" title="设置" border="" @eventClick="navTo('/pages/set/set')"></list-cell>
 			</view>
 		</view>
@@ -89,6 +89,9 @@
 	import {
 		fetchMemberCouponList
 	} from '@/api/coupon.js';
+	import {
+		fetchInviteCode
+	} from '@/api/user.js';
     import {  
         mapState 
     } from 'vuex';  
@@ -102,20 +105,33 @@
 				coverTransform: 'translateY(0px)',
 				coverTransition: '0s',
 				moving: false,
-				couponCount:null
+				couponCount: null,
+				inviteCode: null,
+				baseShareUrl: 'https://mall-app-web2.com/register?inviteCode='
 			}
 		},
 		onLoad(){
 		},
 		onShow(){
 			if(this.hasLogin){
+				// 获取优惠券数量
 				fetchMemberCouponList(0).then(response=>{
 					if(response.data!=null&&response.data.length>0){
 						this.couponCount = response.data.length;
 					}
 				});
+				
+				// 获取邀请码
+				fetchInviteCode().then(res => {
+					if(res.code === 200 && res.data) {
+						this.inviteCode = res.data;
+					}
+				}).catch(err => {
+					console.error('获取邀请码失败', err);
+				});
 			}else{
-				this.couponCount=null;
+				this.couponCount = null;
+				this.inviteCode = null;
 			}
 		},
 		// #ifndef MP
@@ -142,6 +158,75 @@
 			...mapState(['hasLogin','userInfo'])
 		},
         methods: {
+			/**
+			 * 分享给微信好友
+			 */
+			shareWithFriends() {
+				if(!this.hasLogin) {
+					this.navTo('/pages/public/login');
+					return;
+				}
+				
+				if(!this.inviteCode) {
+					uni.showToast({
+						title: '获取邀请码失败，请重试',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 直接在前端生成分享链接
+				const shareLink = this.baseShareUrl + this.inviteCode;
+				
+				// 调用微信分享
+				// #ifdef MP-WEIXIN
+				uni.showShareMenu({
+					withShareTicket: true,
+					success: () => {
+						uni.share({
+							provider: 'weixin',
+							scene: 'WXSceneSession',
+							type: 0,
+							title: '邀请您加入商城',
+							summary: '使用我的邀请码注册可获得优惠',
+							imageUrl: '/static/user-bg.jpg',
+							href: shareLink,
+							success: (res) => {
+								console.log('分享成功', res);
+							},
+							fail: (err) => {
+								console.error('分享失败', err);
+							}
+						});
+					},
+					fail: (err) => {
+						console.error('显示分享菜单失败', err);
+					}
+				});
+				// #endif
+				
+				// #ifndef MP-WEIXIN
+				uni.share({
+					provider: 'weixin',
+					scene: 'WXSceneSession',
+					type: 0,
+					title: '邀请您加入商城',
+					summary: '使用我的邀请码注册可获得优惠',
+					imageUrl: '/static/user-bg.jpg',
+					href: shareLink,
+					success: (res) => {
+						console.log('分享成功', res);
+					},
+					fail: (err) => {
+						console.error('分享失败', err);
+						uni.showToast({
+							title: '分享失败，请重试',
+							icon: 'none'
+						});
+					}
+				});
+				// #endif
+			},
 
 			/**
 			 * 统一跳转接口,拦截未登录路由
@@ -222,8 +307,6 @@
 			top: 0;
 			width: 100%;
 			height: 100%;
-			filter: blur(1px);
-			opacity: .7;
 		}
 	}
 	.user-info-box{
@@ -240,7 +323,7 @@
 		}
 		.username{
 			font-size: $font-lg + 6upx;
-			color: $font-color-dark;
+			color: white;
 			margin-left: 20upx;
 		}
 	}
@@ -319,6 +402,19 @@
 			font-size: $font-lg;
 			color: $font-color-dark;
 			margin-bottom: 8upx;
+		}
+		.share-btn-container {
+			@extend %flex-center;
+			height: 140upx;
+		}
+		.share-btn {
+			font-size: 28upx;
+			background: #FA436A;
+			color: #fff;
+			border-radius: 50upx;
+			padding: 12upx 30upx;
+			box-shadow: 0 4upx 8upx rgba(250, 67, 106, 0.3);
+			height: auto;
 		}
 	}
 	.order-section{
