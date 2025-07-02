@@ -1,14 +1,12 @@
 <template>
   <view class="container">
     <!-- 导航栏 -->
-    <uni-nav-bar 
-      title="邀请统计" 
-      left-icon="back" 
-      :border="false"
-      background-color="#FA436A"
-      color="#fff"
-      @clickLeft="goBack"
-    />
+    <view class="custom-nav">
+      <view class="nav-back" @click="goBack">
+        <text class="back-icon">〈</text>
+      </view>
+      <text class="nav-title">邀请统计</text>
+    </view>
     
     <!-- 内容区域 -->
     <view class="content">
@@ -36,7 +34,6 @@
       </view>
       
       <view class="empty-state" v-else-if="inviteStats && inviteStats.invitedCount === 0">
-        <image class="empty-icon" src="/static/empty.png" mode="aspectFit" />
         <text class="empty-text">还没有邀请过用户</text>
         <text class="empty-hint">分享邀请码给好友，他们注册成功后会显示在这里</text>
       </view>
@@ -90,14 +87,29 @@ export default {
   onShareAppMessage() {
     if (this.inviteCode) {
       return {
-        title: '邀请您加入商城',
-        path: `/pages/public/login?inviteCode=${this.inviteCode}`,
+        title: '邀请您加入商城，注册即享优惠',
+        path: `/pages/index/index?inviteCode=${this.inviteCode}`,
         imageUrl: '/static/user-bg.jpg'
       };
     }
     return {
       title: '商城小程序',
       path: '/pages/index/index'
+    };
+  },
+  // #endif
+  
+  // #ifdef MP-WEIXIN
+  onShareTimeline() {
+    if (this.inviteCode) {
+      return {
+        title: '邀请您加入商城，注册即享优惠',
+        query: `inviteCode=${this.inviteCode}`,
+        imageUrl: '/static/user-bg.jpg'
+      };
+    }
+    return {
+      title: '商城小程序'
     };
   },
   // #endif
@@ -175,6 +187,41 @@ export default {
   background: #f5f5f5;
 }
 
+.custom-nav {
+  position: relative;
+  height: 180upx;
+  background-color: #FA436A;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 20upx;
+  
+  .nav-back {
+    position: absolute;
+    left: 30upx;
+    bottom: 20upx;
+    width: 60upx;
+    height: 60upx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .back-icon {
+      color: #fff;
+      font-size: 44upx;
+      font-weight: bold;
+    }
+  }
+  
+  .nav-title {
+    color: #fff;
+    font-size: 36upx;
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10upx;
+  }
+}
+
 .content {
   padding-top: 20upx;
 }
@@ -230,17 +277,12 @@ export default {
 
 .empty-state {
   text-align: center;
-  padding: 120upx 60upx;
-  
-  .empty-icon {
-    width: 200upx;
-    height: 200upx;
-    margin-bottom: 40upx;
-  }
+  padding: 40upx 60upx;
+  margin-top: 30upx;
   
   .empty-text {
     display: block;
-    font-size: 36upx;
+    font-size: 32upx;
     color: #666;
     margin-bottom: 20upx;
   }

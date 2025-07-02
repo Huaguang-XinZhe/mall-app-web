@@ -8,9 +8,9 @@
 					<image class="portrait" :src="userInfo.icon || '/static/missing-face.png'"></image>
 				</view>
 				<view class="info-box">
-					<text class="username">{{userInfo.nickname || '游客'}}</text>
+					<text class="username">{{userInfo.nickname || (userInfo.phone_number ? formatPhone(userInfo.phone_number) : '游客')}}</text>
 					<!-- #ifdef MP-WEIXIN -->
-					<text class="phone" v-if="userInfo.phone_number">{{formatPhone(userInfo.phone_number)}}</text>
+					<text class="phone" v-if="userInfo.phone_number && userInfo.nickname">{{formatPhone(userInfo.phone_number)}}</text>
 					<!-- #endif -->
 				</view>
 			</view>
@@ -47,8 +47,8 @@
 				</view>
 				<view class="tj-item share-btn-container">
 					<view class="share-btn" @click="shareWithFriends" :class="{ disabled: !userInviteCode }">
-						<text class="yticon icon-fenxiang2"></text>
-						<text>分享邀请码</text>
+						<text class="yticon icon-haoyou"></text>
+						<text>邀请好友</text>
 					</view>
 				</view>
 				<view class="tj-item" @click="navTo('/pages/coupon/couponList')">
@@ -121,7 +121,7 @@
 		onShareAppMessage() {
 			if (this.hasLogin && this.userInviteCode) {
 				return {
-					title: '邀请您加入商城',
+					title: '邀请您加入商城，注册即享优惠',
 					path: `/pages/index/index?inviteCode=${this.userInviteCode}`,
 					imageUrl: '/static/user-bg.jpg'
 				};
@@ -129,6 +129,21 @@
 			return {
 				title: '商城小程序',
 				path: '/pages/index/index'
+			};
+		},
+		// #endif
+		
+		// #ifdef MP-WEIXIN
+		onShareTimeline() {
+			if (this.hasLogin && this.userInviteCode) {
+				return {
+					title: '邀请您加入商城，注册即享优惠',
+					query: `inviteCode=${this.userInviteCode}`,
+					imageUrl: '/static/user-bg.jpg'
+				};
+			}
+			return {
+				title: '商城小程序'
 			};
 		},
 		// #endif
@@ -355,20 +370,11 @@
 				
 				// #ifdef MP-WEIXIN
 				// 微信小程序分享
-				const shareData = {
-					title: '邀请您加入商城',
-					path: `/pages/index/index?inviteCode=${this.userInviteCode}`,
-					imageUrl: '/static/user-bg.jpg'
-				};
-				
-				uni.showShareMenu({
-					withShareTicket: true,
-					success: () => {
-						console.log('分享菜单显示成功');
-					},
-					fail: (err) => {
-						console.error('显示分享菜单失败', err);
-					}
+				uni.showModal({
+					title: '分享邀请',
+					content: '点击右上角"···"按钮，然后点击"转发"即可分享给好友',
+					showCancel: false,
+					confirmText: '我知道了'
 				});
 				// #endif
 				
@@ -382,28 +388,6 @@
 						} else if (res.tapIndex === 1) {
 							this.generateShareLink();
 						}
-					}
-				});
-				// #endif
-				
-				// #ifndef MP-WEIXIN
-				uni.share({
-					provider: 'weixin',
-					scene: 'WXSceneSession',
-					type: 0,
-					title: '邀请您加入商城',
-					summary: '使用我的邀请码注册可获得优惠',
-					imageUrl: '/static/user-bg.jpg',
-					href: shareLink,
-					success: (res) => {
-						console.log('分享成功', res);
-					},
-					fail: (err) => {
-						console.error('分享失败', err);
-						uni.showToast({
-							title: '分享失败，请重试',
-							icon: 'none'
-						});
 					}
 				});
 				// #endif

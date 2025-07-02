@@ -11,17 +11,23 @@
 					<text class="login-title">请先登录</text>
 					<text class="login-desc">使用微信手机号一键登录，快速体验商城功能</text>
 					<!-- #ifdef MP-WEIXIN -->
-					<button class="phone-login-btn" open-type="getPhoneNumber" @getphonenumber="handlePhoneLogin">
-						<text class="yticon icon-shouji"></text>
-						手机号一键登录
+					<button class="phone-login-btn" open-type="getPhoneNumber" @getphonenumber="handlePhoneLogin" :disabled="isLoading">
+						<text class="yticon icon-shouji" v-if="!isLoading"></text>
+						<text class="loading-icon" v-else></text>
+						{{ isLoading ? '登录中...' : '手机号一键登录' }}
 					</button>
 					<!-- #endif -->
 					<!-- #ifndef MP-WEIXIN -->
-					<button class="phone-login-btn" @click="handleMockLogin">
-						<text class="yticon icon-shouji"></text>
-						模拟登录（开发环境）
+					<button class="phone-login-btn" @click="handleMockLogin" :disabled="isLoading">
+						<text class="yticon icon-shouji" v-if="!isLoading"></text>
+						<text class="loading-icon" v-else></text>
+						{{ isLoading ? '登录中...' : '模拟登录（开发环境）' }}
 					</button>
 					<!-- #endif -->
+					
+					<view v-if="pendingInviteCode" class="invite-info">
+						<text class="invite-tip">检测到邀请码：{{ pendingInviteCode }}</text>
+					</view>
 				</view>
 				
 				<view v-else class="invite-section">
@@ -69,14 +75,19 @@
 				inviteCode: '',
 				isValidCode: false,
 				submitting: false,
+				isLoading: false,
 				userOpenid: '',
 				encryptedData: '',
-				iv: ''
+				iv: '',
+				pendingInviteCode: '' // 从URL或本地存储中获取的邀请码
 			}
 		},
 		watch: {
 			show(newVal) {
 				if (newVal) {
+					// 检查本地存储中是否有邀请码
+					this.checkPendingInviteCode();
+					
 					// 检查 URL 中是否有邀请码参数
 					this.checkInviteCodeFromUrl();
 				} else {
@@ -99,6 +110,18 @@
 				this.userOpenid = '';
 				this.encryptedData = '';
 				this.iv = '';
+				// 不重置 pendingInviteCode，因为可能还需要使用
+			},
+			
+			// 检查本地存储中是否有邀请码
+			checkPendingInviteCode() {
+				const storedInviteCode = uni.getStorageSync('pendingInviteCode');
+				if (storedInviteCode) {
+					console.log('从本地存储中获取到邀请码:', storedInviteCode);
+					this.pendingInviteCode = storedInviteCode;
+					this.inviteCode = storedInviteCode;
+					this.validateCode();
+				}
 			},
 			
 			checkInviteCodeFromUrl() {
@@ -106,8 +129,13 @@
 				const pages = getCurrentPages();
 				const currentPage = pages[pages.length - 1];
 				if (currentPage && currentPage.options && currentPage.options.inviteCode) {
+					console.log('从URL参数中获取到邀请码:', currentPage.options.inviteCode);
+					this.pendingInviteCode = currentPage.options.inviteCode;
 					this.inviteCode = currentPage.options.inviteCode;
 					this.validateCode();
+					
+					// 保存到本地存储，以便在其他页面使用
+					uni.setStorageSync('pendingInviteCode', currentPage.options.inviteCode);
 				}
 			},
 			
@@ -123,14 +151,14 @@
 				this.isValidCode = regex.test(this.inviteCode);
 			},
 			
-
-			
 			async handlePhoneLogin(e) {
 				try {
 					// #ifdef MP-WEIXIN
 					console.log('手机号授权详细结果:', JSON.stringify(e.detail));
 					
 					if (e.detail.errMsg === 'getPhoneNumber:ok') {
+						// 设置加载状态
+						this.isLoading = true;
 						// 获取手机号成功
 						this.encryptedData = e.detail.encryptedData;
 						this.iv = e.detail.iv;
@@ -158,6 +186,7 @@
 										title: '获取登录凭证失败',
 										icon: 'none'
 									});
+									this.isLoading = false; // 重置加载状态
 								}
 							},
 							fail: (err) => {
@@ -166,6 +195,7 @@
 									title: '登录失败，请重试',
 									icon: 'none'
 								});
+								this.isLoading = false; // 重置加载状态
 							}
 						});
 					} else {
@@ -185,12 +215,14 @@
 						title: '登录失败，请重试',
 						icon: 'none'
 					});
+					this.isLoading = false; // 重置加载状态
 				}
 			},
 			
 			async handleMockLogin() {
 				// #ifndef MP-WEIXIN
 				// 非小程序环境，模拟登录
+				this.isLoading = true;
 				try {
 					const mockCode = 'mock_code_' + Date.now();
 					const loginParams = {
@@ -235,6 +267,8 @@
 						title: error.message || '登录失败，请重试',
 						icon: 'none'
 					});
+				} finally {
+					this.isLoading = false;
 				}
 				// #endif
 			},
@@ -248,8 +282,13 @@
 						iv: this.iv
 					};
 					
-					// 只有当 inviteCode 有值且有效时才添加到参数中
-					if (this.inviteCode && this.inviteCode.trim()) {
+					// 如果有待处理的邀请码，添加到参数中
+					if (this.pendingInviteCode) {
+						loginParams.inviteCode = this.pendingInviteCode;
+						console.log('使用待处理的邀请码:', this.pendingInviteCode);
+					}
+					// 如果手动输入了邀请码，也添加到参数中
+					else if (this.inviteCode && this.inviteCode.trim()) {
 						loginParams.inviteCode = this.inviteCode.trim();
 					}
 					
@@ -271,6 +310,12 @@
 						console.log('登录成功, 用户信息:', JSON.stringify(response.data.userInfo));
 							// 已注册用户，直接登录
 							this.handleLoginSuccess(response.data);
+							
+							// 登录成功后清除待处理的邀请码
+							if (this.pendingInviteCode) {
+								uni.removeStorageSync('pendingInviteCode');
+								console.log('已清除待处理的邀请码');
+							}
 					} else {
 						console.error('登录失败:', response.message, '错误代码:', response.code);
 						uni.showToast({
@@ -301,6 +346,9 @@
 						title: error.message || '登录失败，请重试',
 						icon: 'none'
 					});
+				} finally {
+					// 无论成功失败，都重置加载状态
+					this.isLoading = false;
 				}
 			},
 			
@@ -416,8 +464,6 @@
 				this.hideSheet();
 			},
 			
-			
-			
 			backToLogin() {
 				this.showInviteInput = false;
 				this.inviteCode = '';
@@ -507,9 +553,33 @@
 		justify-content: center;
 		border: none;
 		
+		&[disabled] {
+			background: #8fd2a8;
+			opacity: 0.8;
+		}
+		
 		.yticon {
 			margin-right: 20rpx;
 			font-size: 36rpx;
+		}
+		
+		.loading-icon {
+			width: 36rpx;
+			height: 36rpx;
+			margin-right: 20rpx;
+			border: 3rpx solid #fff;
+			border-radius: 50%;
+			border-top-color: transparent;
+			animation: loading 0.8s linear infinite;
+		}
+	}
+	
+	@keyframes loading {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
 		}
 	}
 	
@@ -551,5 +621,17 @@
 		font-size: 32rpx;
 		border-radius: 44rpx;
 		border: none;
+	}
+	
+	.invite-info {
+		margin-top: 30rpx;
+		padding: 20rpx;
+		background-color: #f8f8f8;
+		border-radius: 10rpx;
+		
+		.invite-tip {
+			font-size: 28rpx;
+			color: #07c160;
+		}
 	}
 </style> 

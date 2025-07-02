@@ -203,13 +203,19 @@
 					pageSize: 4
 				},
 				loadingType:'more',
-				showLoginSheet: false
+				showLoginSheet: false,
+				inviteCodeFromUrl: ''
 			};
 		},
 		onLoad(options) {
 			// 检查是否有邀请码参数
 			if (options && options.inviteCode) {
+				console.log('检测到URL中的邀请码:', options.inviteCode);
 				this.inviteCodeFromUrl = options.inviteCode;
+				
+				// 将邀请码存储到本地，以便在用户登录时使用
+				uni.setStorageSync('pendingInviteCode', options.inviteCode);
+				console.log('已保存邀请码到本地存储');
 			}
 			this.loadData();
 		},
@@ -277,6 +283,10 @@
 				// 延迟 500ms 显示登录弹窗，确保页面完全加载
 				setTimeout(() => {
 					if (!this.hasLogin) {
+						// 如果有邀请码，传递给登录组件
+						if (this.inviteCodeFromUrl) {
+							console.log('显示登录弹窗，并传递邀请码:', this.inviteCodeFromUrl);
+						}
 						this.showLoginSheet = true;
 					}
 				}, 500);

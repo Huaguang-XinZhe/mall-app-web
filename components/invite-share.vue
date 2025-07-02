@@ -12,7 +12,7 @@
           <text class="code">{{ inviteCode || '暂无' }}</text>
           <view class="copy-btn" @click="copyInviteCode">
             <text class="yticon icon-fuzhi"></text>
-            <text>复制</text>
+            <text>复制邀请码</text>
           </view>
         </view>
       </view>
@@ -25,26 +25,26 @@
       <!-- #ifdef MP-WEIXIN -->
       <view class="share-item" @click="shareToWechat">
         <view class="share-icon wechat">
-          <text class="yticon icon-iconfontweixin"></text>
+          <text class="wechat-icon">💬</text>
         </view>
         <view class="share-content">
           <text class="share-title">微信好友</text>
           <text class="share-desc">分享给微信好友或群聊</text>
         </view>
-        <text class="yticon icon-jiantour-copy"></text>
+        <text class="arrow-icon">→</text>
       </view>
       <!-- #endif -->
       
       <!-- 复制链接 -->
       <view class="share-item" @click="copyShareLink">
         <view class="share-icon link">
-          <text class="yticon icon-lianjie"></text>
+          <text class="link-icon">🔗</text>
         </view>
         <view class="share-content">
           <text class="share-title">复制链接</text>
           <text class="share-desc">复制邀请链接分享到其他平台</text>
         </view>
-        <text class="yticon icon-jiantour-copy"></text>
+        <text class="arrow-icon">→</text>
       </view>
     </view>
     
@@ -113,11 +113,12 @@ export default {
         return;
       }
       
+      // 微信小程序环境下，提示用户使用右上角分享按钮
       uni.showModal({
         title: '分享邀请',
-        content: '请点击右上角菜单选择"转发"来分享给好友',
+        content: '点击右上角"···"按钮，然后点击"转发"或"分享到朋友圈"即可邀请好友',
         showCancel: false,
-        confirmText: '知道了'
+        confirmText: '我知道了'
       });
     },
     // #endif
@@ -133,7 +134,7 @@ export default {
       }
       
       // 生成小程序路径
-      const sharePath = `pages/public/login?inviteCode=${this.inviteCode}`;
+      const sharePath = `pages/index/index?inviteCode=${this.inviteCode}`;
       const shareText = `邀请您注册商城小程序，我的邀请码：${this.inviteCode}，小程序路径：${sharePath}`;
       
       uni.setClipboardData({
@@ -208,10 +209,16 @@ export default {
       padding: 16upx 24upx;
       border-radius: 8upx;
       font-size: 24upx;
+      transition: all 0.2s;
+      
+      &:active {
+        transform: scale(0.95);
+        opacity: 0.9;
+      }
       
       .yticon {
-        margin-right: 8upx;
-        font-size: 20upx;
+        margin-right: 10upx;
+        font-size: 26upx;
       }
     }
   }
@@ -252,9 +259,8 @@ export default {
   justify-content: center;
   margin-right: 24upx;
   
-  .yticon {
-    font-size: 36upx;
-    color: #fff;
+  .wechat-icon, .link-icon {
+    font-size: 40upx;
   }
   
   &.wechat {
@@ -264,6 +270,11 @@ export default {
   &.link {
     background: #FA436A;
   }
+}
+
+.arrow-icon {
+  font-size: 32upx;
+  color: #999;
 }
 
 .share-content {

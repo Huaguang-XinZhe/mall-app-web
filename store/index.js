@@ -36,6 +36,26 @@ const store = new Vuex.Store({
       } else {
         console.log("Vuex login 方法 - 未找到 token 存储");
       }
+
+      // 从用户信息中获取邀请码
+      if (provider.invite_code) {
+        console.log(
+          "Vuex login 方法 - 从用户信息中获取邀请码:",
+          provider.invite_code
+        );
+        state.inviteCode = provider.invite_code;
+        uni.setStorageSync("inviteCode", provider.invite_code);
+      } else {
+        // 如果用户信息中没有邀请码，尝试从本地存储恢复
+        const storedInviteCode = uni.getStorageSync("inviteCode");
+        if (storedInviteCode) {
+          console.log(
+            "Vuex login 方法 - 从本地存储恢复邀请码:",
+            storedInviteCode
+          );
+          state.inviteCode = storedInviteCode;
+        }
+      }
     },
     logout(state) {
       state.hasLogin = false;
@@ -58,6 +78,7 @@ const store = new Vuex.Store({
         key: "inviteCode",
         data: inviteCode,
       });
+      console.log("Vuex setInviteCode 方法 - 存储邀请码:", inviteCode);
     },
     setInviteFrom(state, inviteFrom) {
       state.inviteFrom = inviteFrom;
