@@ -131,10 +131,11 @@
 				<text class="yticon icon-gouwuche"></text>
 				<text>购物车</text>
 			</navigator>
-			<view class="p-b-btn" :class="{active: favorite}" @click="toFavorite">
+			<!-- 注释掉收藏按钮 -->
+			<!-- <view class="p-b-btn" :class="{active: favorite}" @click="toFavorite">
 				<text class="yticon icon-shoucang"></text>
 				<text>收藏</text>
-			</view>
+			</view> -->
 
 			<view class="action-btn-group">
 				<button type="primary" class=" action-btn no-border buy-now-btn" @click="buy">立即购买</button>
@@ -227,14 +228,14 @@
 		fetchProductCouponList,
 		addMemberCoupon
 	} from '@/api/coupon.js';
-	import {
+	/* import {
 		createReadHistory
 	} from '@/api/memberReadHistory.js';
 	import {
 		createProductCollection,
 		deleteProductCollection,
 		productCollectionDetail
-	} from '@/api/memberProductCollection.js';
+	} from '@/api/memberProductCollection.js'; */
 	import {
 		mapState
 	} from 'vuex';
@@ -336,8 +337,6 @@
 					this.initAttrList(response.data);
 					this.initPromotionTipList(response.data);
 					this.initProductDesc();
-					this.handleReadHistory();
-					this.initProductCollection();
 				});
 			},
 			//规格弹窗开关
@@ -421,7 +420,7 @@
 				this.$refs.share.toggleMask();
 			},
 			//收藏
-			toFavorite() {
+			/* toFavorite() {
 				if (!this.checkForLogin()) {
 					return;
 				}
@@ -453,7 +452,7 @@
 						this.favorite = !this.favorite;
 					});
 				}
-			},
+			}, */
 			buy() {
 				uni.showToast({
 					title: "暂时只支持从购物车下单！",
@@ -589,7 +588,7 @@
 				this.desc = tempNode.innerHTML;
 			},
 			//处理创建浏览记录
-			handleReadHistory() {
+			/* handleReadHistory() {
 				if (this.hasLogin) {
 					let data = {
 						productId: this.product.id,
@@ -600,7 +599,7 @@
 					}
 					createReadHistory(data);
 				}
-			},
+			}, */
 			//当商品规格改变时，修改商品信息
 			changeSpecInfo() {
 				let skuStock = this.getSkuStock();
@@ -687,7 +686,7 @@
 				}
 			},
 			//初始化收藏状态
-			initProductCollection() {
+			/* initProductCollection() {
 				if (this.hasLogin) {
 					productCollectionDetail({
 						productId: this.product.id
@@ -695,7 +694,7 @@
 						this.favorite = response.data != null;
 					});
 				}
-			},
+			}, */
 			//跳转到品牌详情页
 			navToBrandDetail(){
 				let id = this.brand.id;
@@ -1215,13 +1214,14 @@
 	/* 底部操作菜单 */
 	.page-bottom {
 		position: fixed;
-		left: 30upx;
+		left: 50%;
+		transform: translateX(-50%);
 		bottom: 30upx;
 		z-index: 95;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		width: 690upx;
+		width: 620upx;
 		height: 100upx;
 		background: rgba(255, 255, 255, .9);
 		box-shadow: 0 0 20upx 0 rgba(0, 0, 0, .5);
@@ -1243,30 +1243,25 @@
 				color: $font-color-light;
 			}
 
-			&.active,
-			&.active .yticon {
+			&.active, &:active {
 				color: $uni-color-primary;
-			}
 
-			.icon-fenxiang2 {
-				font-size: 42upx;
-				transform: translateY(-2upx);
-			}
-
-			.icon-shoucang {
-				font-size: 46upx;
+				.yticon {
+					color: $uni-color-primary;
+				}
 			}
 		}
 
 		.action-btn-group {
 			display: flex;
 			height: 76upx;
-			border-radius: 100px;
+			border-radius: 38upx;
 			overflow: hidden;
 			box-shadow: 0 20upx 40upx -16upx #fa436a;
-			box-shadow: 1px 2px 5px rgba(219, 63, 96, 0.4);
+			box-shadow: 0 20upx 40upx -16upx #fa436a;
 			background: linear-gradient(to right, #ffac30, #fa436a, #F56C6C);
 			margin-left: 20upx;
+			margin-right: 10upx;
 			position: relative;
 
 			&:after {

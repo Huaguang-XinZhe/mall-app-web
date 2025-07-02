@@ -15,9 +15,10 @@
 				<text :class="{Skeleton:!loaded}">{{brand.name}}</text>
 				<text :class="{Skeleton:!loaded}">品牌首字母：{{brand.firstLetter}}</text>
 			</view>
-			<view>
+			<!-- 注释掉收藏图标 -->
+			<!-- <view>
 				<text class="yticon icon-shoucang" :class="{active: favoriteStatus}" @click="favorite()"></text>
-			</view>
+			</view> -->
 		</view>
 		<!-- 品牌故事 -->
 		<view class="section-tit">品牌故事</view>
@@ -49,11 +50,11 @@
 		getBrandDetail,
 		fetchBrandProductList
 	} from '@/api/brand.js';
-	import {
+	/* import {
 		createBrandAttention,
 		deleteBrandAttention,
 		brandAttentionDetail
-	} from '@/api/memberBrandAttention.js';
+	} from '@/api/memberBrandAttention.js'; */
 	import uniLoadMore from '@/components/uni-load-more/uni-load-more.vue';
 	import {
 		mapState
@@ -81,7 +82,7 @@
 			let id = options.id;
 			getBrandDetail(id).then(response => {
 				this.brand = response.data;
-				this.initBrandAttention();
+				// this.initBrandAttention();
 			});
 			this.queryParam.brandId = id;
 			this.loadData('refresh');
@@ -94,7 +95,7 @@
 				this.$set(this.data[key][index], 'loaded', 'loaded');
 			},
 			//收藏
-			favorite() {
+			/* favorite() {
 				if (!this.checkForLogin()) {
 					return;
 				}
@@ -125,7 +126,7 @@
 						this.favoriteStatus = !this.favoriteStatus;
 					});
 				}
-			},
+			}, */
 			//详情
 			navToDetailPage(item) {
 				let id = item.id;
@@ -183,13 +184,13 @@
 				this.loadData();
 			},
 			//初始化收藏状态
-			initBrandAttention(){
+			/* initBrandAttention(){
 				if(this.hasLogin){
 					brandAttentionDetail({brandId:this.brand.id}).then(response=>{
 						this.favoriteStatus = response.data!=null;
 					});
 				}
-			},
+			}, */
 			//检查登录状态并弹出登录框
 			checkForLogin() {
 				if (!this.hasLogin) {

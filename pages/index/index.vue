@@ -27,19 +27,19 @@
 		</view>
 		<!-- 头部功能区 -->
 		<view class="cate-section">
-			<view class="cate-item">
+			<view class="cate-item" @click="navToCategory('专题')">
 				<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/c3.png"></image>
 				<text>专题</text>
 			</view>
-			<view class="cate-item">
+			<view class="cate-item" @click="navToCategory('话题')">
 				<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/c5.png"></image>
 				<text>话题</text>
 			</view>
-			<view class="cate-item">
+			<view class="cate-item" @click="navToCategory('优选')">
 				<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/c6.png"></image>
 				<text>优选</text>
 			</view>
-			<view class="cate-item">
+			<view class="cate-item" @click="navToCategory('特惠')">
 				<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/c7.png"></image>
 				<text>特惠</text>
 			</view>
@@ -66,6 +66,8 @@
 		</view>
 
 		<!-- 秒杀专区 -->
+		<!-- 注释掉秒杀专区 -->
+		<!--
 		<view class="f-header m-t" v-if="homeFlashPromotion!==null">
 			<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/icon_flash_promotion.png"></image>
 			<view class="tit-box">
@@ -95,6 +97,7 @@
 				<text class="price">￥{{item.price}}</text>
 			</view>
 		</view>
+		-->
 
 		<!-- 新鲜好物 -->
 		<view class="f-header m-t" @click="navToNewProudctListPage()">
@@ -335,7 +338,19 @@
 			//广告详情页
 			navToAdvertisePage(item) {
 				let id = item.id;
-				console.log("navToAdvertisePage",item)
+				console.log("navToAdvertisePage",item);
+				// 添加导航逻辑，根据广告类型跳转到不同页面
+				if(item.url) {
+					// 如果广告有链接，则跳转到该链接
+					uni.navigateTo({
+						url: item.url
+					});
+				} else if(item.productId) {
+					// 如果广告关联了商品，则跳转到商品详情
+					uni.navigateTo({
+						url: `/pages/product/product?id=${item.productId}`
+					});
+				}
 			},
 			//品牌详情页
 			navToBrandDetailPage(item) {
@@ -361,6 +376,15 @@
 				uni.navigateTo({
 					url: `/pages/product/hotProductList`
 				})
+			},
+			//分类导航
+			navToCategory(categoryName) {
+				console.log("导航到分类:", categoryName);
+				// 根据不同分类跳转到相应页面
+				uni.showToast({
+					title: `${categoryName}功能即将上线`,
+					icon: 'none'
+				});
 			}
 		},
 		// #ifndef MP
