@@ -23,7 +23,7 @@
         <view class="user-item" v-for="user in invitedUsers" :key="user.id">
           <image 
             class="avatar" 
-            :src="user.avatar_url || '/static/missing-face.png'"
+            :src="user.avatar_url || 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/missing-face.png'"
             mode="aspectFill"
           />
           <view class="user-info">
@@ -42,7 +42,7 @@
       <!-- 非微信小程序提示 -->
       <!-- #ifndef MP-WEIXIN -->
       <view class="unsupported-platform">
-        <image class="hint-icon" src="/static/missing-face.png" mode="aspectFit" />
+        <image class="hint-icon" src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/missing-face.png" mode="aspectFit" />
         <view class="hint-text">
           <text>邀请功能仅支持微信小程序</text>
           <text>请在微信中使用此功能</text>
@@ -89,7 +89,7 @@ export default {
       return {
         title: '邀请您加入商城，注册即享优惠',
         path: `/pages/index/index?inviteCode=${this.inviteCode}`,
-        imageUrl: '/static/user-bg.jpg'
+        imageUrl: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg'
       };
     }
     return {
@@ -105,7 +105,7 @@ export default {
       return {
         title: '邀请您加入商城，注册即享优惠',
         query: `inviteCode=${this.inviteCode}`,
-        imageUrl: '/static/user-bg.jpg'
+        imageUrl: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg'
       };
     }
     return {

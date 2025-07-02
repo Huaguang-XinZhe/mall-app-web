@@ -228,31 +228,31 @@
 					case 0:
 						this.orderStatus = {
 							text: '等待付款',
-							image: '/static/icon_wait.png'
+							image: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/icon_wait.png'
 						}
 						break;
 					case 1:
 						this.orderStatus = {
 							text: '等待发货',
-							image: '/static/icon_deliver.png'
+							image: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/icon_deliver.png'
 						}
 						break;
 					case 2:
 						this.orderStatus = {
 							text: '等待收货',
-							image: '/static/icon_receive.png'
+							image: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/icon_receive.png'
 						}
 						break;
 					case 3:
 						this.orderStatus = {
 							text: '交易完成',
-							image: '/static/icon_finish.png'
+							image: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/icon_finish.png'
 						}
 						break;
 					case 4:
 						this.orderStatus = {
 							text: '交易关闭',
-							image: '/static/icon_close.png'
+							image: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/icon_close.png'
 						}
 						break;
 				};

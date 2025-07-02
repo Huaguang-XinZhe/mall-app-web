@@ -2,10 +2,10 @@
     <view class="container">  
 		
 		<view class="user-section">
-			<image class="bg" src="/static/user-bg.jpg"></image>
+			<image class="bg" src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg"></image>
 			<view class="user-info-box">
 				<view class="portrait-box">
-					<image class="portrait" :src="userInfo.icon || '/static/missing-face.png'"></image>
+					<image class="portrait" :src="userInfo.icon || 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/missing-face.png'"></image>
 				</view>
 				<view class="info-box">
 					<text class="username">{{userInfo.nickname || (userInfo.phone_number ? formatPhone(userInfo.phone_number) : '游客')}}</text>
@@ -15,7 +15,7 @@
 				</view>
 			</view>
 			<!-- <view class="vip-card-box">
-				<image class="card-bg" src="/static/vip-card-bg.png" mode=""></image>
+				<image class="card-bg" src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/vip-card-bg.png" mode=""></image>
 				<view class="b-btn">
 					立即开通
 				</view>
@@ -38,7 +38,7 @@
 			@touchmove="coverTouchmove"
 			@touchend="coverTouchend"
 		>
-			<image class="arc" src="/static/arc.png"></image>
+			<image class="arc" src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/arc.png"></image>
 			
 			<view class="tj-sction">
 				<view class="tj-item" @click="copyInviteCode">
@@ -123,7 +123,7 @@
 				return {
 					title: '邀请您加入商城，注册即享优惠',
 					path: `/pages/index/index?inviteCode=${this.userInviteCode}`,
-					imageUrl: '/static/user-bg.jpg'
+					imageUrl: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg'
 				};
 			}
 			return {
@@ -139,7 +139,7 @@
 				return {
 					title: '邀请您加入商城，注册即享优惠',
 					query: `inviteCode=${this.userInviteCode}`,
-					imageUrl: '/static/user-bg.jpg'
+					imageUrl: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg'
 				};
 			}
 			return {

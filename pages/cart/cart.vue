@@ -2,7 +2,7 @@
 	<view class="container">
 		<!-- 空白页 -->
 		<view v-if="!hasLogin || empty===true" class="empty">
-			<image src="/static/emptyCart.jpg" mode="aspectFit"></image>
+			<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/emptyCart.jpg" mode="aspectFit"></image>
 			<view v-if="hasLogin" class="empty-tips">
 				空空如也
 				<navigator class="navigator" v-if="hasLogin" url="../index/index" open-type="switchTab">随便逛逛></navigator>
@@ -35,7 +35,7 @@
 			<!-- 底部菜单栏 -->
 			<view class="action-section">
 				<view class="checkbox">
-					<image :src="allChecked?'/static/selected.png':'/static/select.png'" mode="aspectFit" @click="check('all')"></image>
+					<image :src="allChecked?'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/selected.png':'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/select.png'" mode="aspectFit" @click="check('all')"></image>
 					<view class="clear-btn" :class="{show: allChecked}" @click="clearCart">
 						清空
 					</view>
@@ -123,7 +123,7 @@
 			},
 			//监听image加载失败
 			onImageError(key, index) {
-				this[key][index].productPic = '/static/errorImage.jpg';
+				this[key][index].productPic = 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/errorImage.jpg';
 			},
 			navToLogin() {
 				uni.navigateTo({

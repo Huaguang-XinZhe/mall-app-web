@@ -253,22 +253,22 @@
 	}];
 	const defaultShareList = [{
 			type: 1,
-			icon: '/static/temp/share_wechat.png',
+			icon: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/share_wechat.png',
 			text: '微信好友'
 		},
 		{
 			type: 2,
-			icon: '/static/temp/share_moment.png',
+			icon: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/share_moment.png',
 			text: '朋友圈'
 		},
 		{
 			type: 3,
-			icon: '/static/temp/share_qq.png',
+			icon: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/share_qq.png',
 			text: 'QQ好友'
 		},
 		{
 			type: 4,
-			icon: '/static/temp/share_qqzone.png',
+			icon: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/temp/share_qqzone.png',
 			text: 'QQ空间'
 		}
 	]

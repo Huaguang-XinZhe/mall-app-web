@@ -1,6 +1,6 @@
 <template>
 	<view class="content">
-		<image src="/static/hot_product_banner.png" class="banner-image"></image>
+		<image src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/hot_product_banner.png" class="banner-image"></image>
 		<view class="section-tit">相关商品</view>
 		<view class="goods-list">
 			<view v-for="(item, index) in productList" :key="index" class="goods-item" @click="navToDetailPage(item)">
