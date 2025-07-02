@@ -9,6 +9,9 @@
 				</view>
 				<view class="info-box">
 					<text class="username">{{userInfo.nickname || '游客'}}</text>
+					<!-- #ifdef MP-WEIXIN -->
+					<text class="phone" v-if="userInfo.phone_number">{{formatPhone(userInfo.phone_number)}}</text>
+					<!-- #endif -->
 				</view>
 			</view>
 			<!-- <view class="vip-card-box">
@@ -38,13 +41,14 @@
 			<image class="arc" src="/static/arc.png"></image>
 			
 			<view class="tj-sction">
-				<view class="tj-item">
-					<text class="num">{{inviteCode || '暂无'}}</text>
-					<text>邀请码</text>
+				<view class="tj-item" @click="copyInviteCode">
+					<text class="num">{{userInviteCode || '暂无'}}</text>
+					<text>我的邀请码</text>
 				</view>
 				<view class="tj-item share-btn-container">
-					<view class="share-btn" @click="shareWithFriends">
-						<text>分享</text>
+					<view class="share-btn" @click="shareWithFriends" :class="{ disabled: !userInviteCode }">
+						<text class="yticon icon-fenxiang2"></text>
+						<text>分享邀请码</text>
 					</view>
 				</view>
 				<view class="tj-item" @click="navTo('/pages/coupon/couponList')">
@@ -69,6 +73,9 @@
 			</view>
 			<!-- 浏览历史 -->
 			<view class="history-section icon">
+				<!-- #ifdef MP-WEIXIN -->
+				<list-cell icon="icon-fenxiang2" iconColor="#FA436A" title="邀请统计" @eventClick="navTo('/pages/user/inviteStats')"></list-cell>
+				<!-- #endif -->
 				<list-cell icon="icon-dizhi" iconColor="#5fcda2" title="地址管理" @eventClick="navTo('/pages/address/address')"></list-cell>
 				<list-cell icon="icon-lishijilu" iconColor="#e07472" title="我的足迹" @eventClick="navTo('/pages/user/readHistory')"></list-cell>
 				<list-cell icon="icon-shoucang" iconColor="#5fcda2" title="我的关注" @eventClick="navTo('/pages/user/brandAttention')"></list-cell>
@@ -86,10 +93,12 @@
 		fetchMemberCouponList
 	} from '@/api/coupon.js';
 	import {
-		fetchInviteCode
+		getUserProfile,
+		getInviteStats,
+		verifyToken
 	} from '@/api/user.js';
     import {  
-        mapState 
+        mapState, mapMutations
     } from 'vuex';  
 	let startY = 0, moveY = 0, pageAtTop = true;
     export default {
@@ -102,13 +111,50 @@
 				coverTransition: '0s',
 				moving: false,
 				couponCount: null,
-				inviteCode: null,
-				baseShareUrl: 'https://mall-app-web2.com/register?inviteCode='
+				userInviteCode: null,
+				baseShareUrl: '#/pages/index/index?inviteCode='
 			}
 		},
 		onLoad(){
 		},
+		// #ifdef MP-WEIXIN
+		onShareAppMessage() {
+			if (this.hasLogin && this.userInviteCode) {
+				return {
+					title: '邀请您加入商城',
+					path: `/pages/index/index?inviteCode=${this.userInviteCode}`,
+					imageUrl: '/static/user-bg.jpg'
+				};
+			}
+			return {
+				title: '商城小程序',
+				path: '/pages/index/index'
+			};
+		},
+		// #endif
 		onShow(){
+			// 调试信息：检查登录状态和存储的数据
+			console.log('用户页面 onShow - hasLogin:', this.hasLogin);
+			console.log('用户页面 onShow - userInfo:', JSON.stringify(this.userInfo));
+			console.log('用户页面 onShow - 本地存储的 token:', uni.getStorageSync('token'));
+			console.log('用户页面 onShow - 本地存储的 userInfo:', JSON.stringify(uni.getStorageSync('userInfo')));
+			
+			// 检查登录状态一致性
+			const token = uni.getStorageSync('token');
+			const storedUserInfo = uni.getStorageSync('userInfo');
+			
+			// 如果有 token 但 Vuex 中显示未登录，尝试恢复登录状态
+			if (token && !this.hasLogin && storedUserInfo) {
+				console.log('用户页面 onShow - 检测到 token 存在但未登录，尝试恢复登录状态');
+				this.login(storedUserInfo);
+				
+				// 获取邀请码
+				if (storedUserInfo.invite_code) {
+					this.userInviteCode = storedUserInfo.invite_code;
+					this.setInviteCode(storedUserInfo.invite_code);
+				}
+			}
+			
 			if(this.hasLogin){
 				// 获取优惠券数量
 				fetchMemberCouponList(0).then(response=>{
@@ -117,17 +163,20 @@
 					}
 				});
 				
-				// 获取邀请码
-				fetchInviteCode().then(res => {
-					if(res.code === 200 && res.data) {
-						this.inviteCode = res.data;
+				// 刷新邀请统计信息
+				this.refreshInviteStats().catch(error => {
+					console.error('刷新邀请统计失败:', error);
+					
+					// 如果是 401 错误，但是本地仍有 token，可能是临时网络问题
+					if (error.code === 401 && token) {
+						console.log('检测到 401 错误但本地有 token，可能是临时网络问题，不执行登出');
+						// 可以尝试静默重新验证 token
+						this.silentVerifyToken();
 					}
-				}).catch(err => {
-					console.error('获取邀请码失败', err);
 				});
 			}else{
 				this.couponCount = null;
-				this.inviteCode = null;
+				this.userInviteCode = null;
 			}
 		},
 		// #ifndef MP
@@ -151,11 +200,144 @@
 		},
 		// #endif
         computed: {
-			...mapState(['hasLogin','userInfo'])
+			...mapState(['hasLogin','userInfo','inviteCode'])
 		},
         methods: {
+			...mapMutations(['setInviteCode', 'login', 'logout']),
+			
 			/**
-			 * 分享给微信好友
+			 * 刷新用户信息（完整版，现在不使用）
+			 */
+			async refreshUserInfo() {
+				console.log('开始刷新用户信息...');
+				console.log('当前 token:', uni.getStorageSync('token'));
+				
+				try {
+					// 获取用户基本信息
+					console.log('调用 getUserProfile...');
+					const userRes = await getUserProfile();
+					console.log('getUserProfile 响应:', userRes);
+					
+					if (userRes.success && userRes.data.user) {
+						// 更新 Vuex 中的用户信息
+						this.login(userRes.data.user);
+					}
+					
+					// 获取邀请统计信息
+					await this.refreshInviteStats();
+				} catch (error) {
+					console.error('刷新用户信息失败:', error);
+					console.error('错误详情:', error.code, error.message, error.data);
+					
+					// 如果是认证错误，可能需要重新登录
+					if (error.code === 401) {
+						console.log('检测到 401 错误，执行登出操作');
+						this.logout();
+						
+						// 显示重新登录提示
+						uni.showModal({
+							title: '提示',
+							content: '您已被登出，可以取消继续留在该页面，或者重新登录',
+							confirmText: '重新登录',
+							cancelText: '取消',
+							success: (res) => {
+								if (res.confirm) {
+									uni.reLaunch({
+										url: '/pages/index/index'
+									});
+								}
+							}
+						});
+					}
+				}
+			},
+			
+			/**
+			 * 只刷新邀请统计信息
+			 */
+			async refreshInviteStats() {
+				try {
+					// 获取邀请统计信息
+					console.log('调用 getInviteStats...');
+					const inviteRes = await getInviteStats();
+					console.log('getInviteStats 响应:', JSON.stringify(inviteRes));
+					
+					if (inviteRes.success && inviteRes.data) {
+						this.userInviteCode = inviteRes.data.inviteCode;
+						this.setInviteCode(inviteRes.data.inviteCode);
+					}
+					return inviteRes;
+				} catch (error) {
+					console.error('获取邀请统计失败:', error);
+					console.error('错误详情:', error.code, error.message, error.data);
+					
+					// 如果是认证错误，可能需要重新登录
+					if (error.code === 401) {
+						console.log('检测到 401 错误，检查本地 token...');
+						const token = uni.getStorageSync('token');
+						
+						// 如果本地没有 token，执行登出
+						if (!token) {
+							console.log('本地无 token，执行登出操作');
+							this.logout();
+							
+							// 显示重新登录提示
+							uni.showModal({
+								title: '提示',
+								content: '您的登录已过期，请重新登录',
+								confirmText: '重新登录',
+								cancelText: '取消',
+								success: (res) => {
+									if (res.confirm) {
+										uni.reLaunch({
+											url: '/pages/index/index'
+										});
+									}
+								}
+							});
+						} else {
+							console.log('本地仍有 token，可能是临时网络问题，不执行登出');
+							// 抛出错误让上层处理
+							throw error;
+						}
+					}
+					return error;
+				}
+			},
+			
+			/**
+			 * 格式化手机号显示
+			 */
+			formatPhone(phone) {
+				if (!phone) return '';
+				return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+			},
+			
+			/**
+			 * 复制邀请码
+			 */
+			copyInviteCode() {
+				if (!this.userInviteCode) {
+					uni.showToast({
+						title: '暂无邀请码',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				uni.setClipboardData({
+					data: this.userInviteCode,
+					success: () => {
+						uni.showToast({
+							title: '邀请码已复制',
+							icon: 'success'
+						});
+					}
+				});
+			},
+			
+			/**
+			 * 分享邀请码
 			 */
 			shareWithFriends() {
 				if(!this.hasLogin) {
@@ -163,7 +345,7 @@
 					return;
 				}
 				
-				if(!this.inviteCode) {
+				if(!this.userInviteCode) {
 					uni.showToast({
 						title: '获取邀请码失败，请重试',
 						icon: 'none'
@@ -171,32 +353,35 @@
 					return;
 				}
 				
-				// 直接在前端生成分享链接
-				const shareLink = this.baseShareUrl + this.inviteCode;
-				
-				// 调用微信分享
 				// #ifdef MP-WEIXIN
+				// 微信小程序分享
+				const shareData = {
+					title: '邀请您加入商城',
+					path: `/pages/index/index?inviteCode=${this.userInviteCode}`,
+					imageUrl: '/static/user-bg.jpg'
+				};
+				
 				uni.showShareMenu({
 					withShareTicket: true,
 					success: () => {
-						uni.share({
-							provider: 'weixin',
-							scene: 'WXSceneSession',
-							type: 0,
-							title: '邀请您加入商城',
-							summary: '使用我的邀请码注册可获得优惠',
-							imageUrl: '/static/user-bg.jpg',
-							href: shareLink,
-							success: (res) => {
-								console.log('分享成功', res);
-							},
-							fail: (err) => {
-								console.error('分享失败', err);
-							}
-						});
+						console.log('分享菜单显示成功');
 					},
 					fail: (err) => {
 						console.error('显示分享菜单失败', err);
+					}
+				});
+				// #endif
+				
+				// #ifndef MP-WEIXIN
+				// 其他平台，显示分享选项
+				uni.showActionSheet({
+					itemList: ['复制邀请码', '生成分享链接'],
+					success: (res) => {
+						if (res.tapIndex === 0) {
+							this.copyInviteCode();
+						} else if (res.tapIndex === 1) {
+							this.generateShareLink();
+						}
 					}
 				});
 				// #endif
@@ -222,6 +407,22 @@
 					}
 				});
 				// #endif
+			},
+			
+			/**
+			 * 生成分享链接
+			 */
+			generateShareLink() {
+				const shareLink = this.baseShareUrl + this.userInviteCode;
+				uni.setClipboardData({
+					data: shareLink,
+					success: () => {
+						uni.showToast({
+							title: '分享链接已复制',
+							icon: 'success'
+						});
+					}
+				});
 			},
 
 			/**
@@ -274,7 +475,27 @@
 				this.moving = false;
 				this.coverTransition = 'transform 0.3s cubic-bezier(.21,1.93,.53,.64)';
 				this.coverTransform = 'translateY(0px)';
-			}
+			},
+			/**
+			 * 静默验证 token，不弹出提示
+			 */
+			async silentVerifyToken() {
+				try {
+					const response = await verifyToken();
+					
+					if (response.success) {
+						console.log('静默验证 token 成功，更新用户信息');
+						this.login(response.data.userInfo);
+						if (response.data.inviteCode) {
+							this.setInviteCode(response.data.inviteCode);
+							this.userInviteCode = response.data.inviteCode;
+						}
+					}
+				} catch (error) {
+					console.error('静默验证 token 失败:', error);
+					// 失败时不做任何处理，保持当前状态
+				}
+			},
         }  
     }  
 </script>  
@@ -317,10 +538,19 @@
 			border:5upx solid #fff;
 			border-radius: 50%;
 		}
+		.info-box {
+			margin-left: 20upx;
+			display: flex;
+			flex-direction: column;
+		}
 		.username{
 			font-size: $font-lg + 6upx;
 			color: white;
-			margin-left: 20upx;
+			margin-bottom: 8upx;
+		}
+		.phone {
+			font-size: $font-base;
+			color: rgba(255, 255, 255, 0.8);
 		}
 	}
 
@@ -404,6 +634,9 @@
 			height: 140upx;
 		}
 		.share-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			font-size: 28upx;
 			background: #FA436A;
 			color: #fff;
@@ -411,6 +644,16 @@
 			padding: 12upx 30upx;
 			box-shadow: 0 4upx 8upx rgba(250, 67, 106, 0.3);
 			height: auto;
+			
+			&.disabled {
+				background: #ccc;
+				box-shadow: none;
+			}
+			
+			.yticon {
+				margin-right: 8upx;
+				font-size: 24upx;
+			}
 		}
 	}
 	.order-section{

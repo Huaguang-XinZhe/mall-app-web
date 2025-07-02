@@ -162,6 +162,9 @@
 			</view>
 		</view>
 		<uni-load-more :status="loadingType"></uni-load-more>
+		
+		<!-- 登录弹窗 -->
+		<login-sheet :show="showLoginSheet" @hide="hideLoginSheet"></login-sheet>
 	</view>
 </template>
 
@@ -173,10 +176,13 @@
 	import {
 		formatDate
 	} from '@/utils/date';
+	import { mapState } from 'vuex';
 	import uniLoadMore from '@/components/uni-load-more/uni-load-more.vue';
+	import loginSheet from '@/components/login-sheet.vue';
 	export default {
 		components: {
-			uniLoadMore	
+			uniLoadMore,
+			loginSheet
 		},
 		data() {
 			return {
@@ -196,11 +202,20 @@
 					pageNum: 1,
 					pageSize: 4
 				},
-				loadingType:'more'
+				loadingType:'more',
+				showLoginSheet: false
 			};
 		},
-		onLoad() {
+		onLoad(options) {
+			// 检查是否有邀请码参数
+			if (options && options.inviteCode) {
+				this.inviteCodeFromUrl = options.inviteCode;
+			}
 			this.loadData();
+		},
+		onShow() {
+			// 页面显示时检查登录状态
+			this.checkLoginStatus();
 		},
 		//下拉刷新
 		onPullDownRefresh(){
@@ -224,6 +239,7 @@
 			})
 		},
 		computed: {
+			...mapState(['hasLogin']),
 			cutDownTime() {
 				let endTime = new Date(this.homeFlashPromotion.endTime);
 				let endDateTime = new Date();
@@ -254,6 +270,25 @@
 			},
 		},
 		methods: {
+			/**
+			 * 检查登录状态
+			 */
+			checkLoginStatus() {
+				// 延迟 500ms 显示登录弹窗，确保页面完全加载
+				setTimeout(() => {
+					if (!this.hasLogin) {
+						this.showLoginSheet = true;
+					}
+				}, 500);
+			},
+			
+			/**
+			 * 隐藏登录弹窗
+			 */
+			hideLoginSheet() {
+				this.showLoginSheet = false;
+			},
+			
 			/**
 			 * 加载数据
 			 */
@@ -316,7 +351,7 @@
 				uni.navigateTo({
 					url: `/pages/product/hotProductList`
 				})
-			},
+			}
 		},
 		// #ifndef MP
 		// 标题栏input搜索框点击
@@ -617,7 +652,7 @@
 
 		.tit {
 			font-size: $font-lg +2upx;
-			color: #font-color-dark;
+			color: $font-color-dark;
 			line-height: 1.3;
 		}
 

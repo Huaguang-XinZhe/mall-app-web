@@ -6,21 +6,133 @@
 		mapMutations
 	} from 'vuex';
 	export default {
+		data() {
+			return {
+				tokenRefreshTimer: null
+			}
+		},
 		methods: {
-			...mapMutations(['login'])
+			...mapMutations(['login']),
+			
+			// 检查认证状态
+			async checkAuthStatus() {
+				const token = uni.getStorageSync('token');
+				const userInfo = uni.getStorageSync('userInfo');
+				
+				console.log('App checkAuthStatus - token:', token);
+				console.log('App checkAuthStatus - userInfo:', userInfo ? JSON.stringify(userInfo) : '无');
+				
+				if (token && userInfo && (userInfo.id || userInfo.openid)) {
+					console.log('App checkAuthStatus - 检测到本地认证数据，验证 token...');
+					// 验证 token 是否有效
+					try {
+						const { verifyToken } = require('@/api/user.js');
+						
+						// 添加超时处理
+						const timeoutPromise = new Promise((_, reject) => {
+							setTimeout(() => reject(new Error('Token 验证请求超时')), 10000);
+						});
+						
+						const responsePromise = verifyToken();
+						const response = await Promise.race([responsePromise, timeoutPromise]);
+						
+						console.log('App checkAuthStatus - verifyToken 响应:', JSON.stringify(response));
+						
+						if (response.success) {
+							// Token 有效，恢复登录状态
+							console.log('App checkAuthStatus - Token 有效，恢复登录状态');
+							
+							// 确保有用户信息
+							if (response.data && response.data.userInfo) {
+								console.log('App checkAuthStatus - 使用后端返回的用户信息');
+								this.login(response.data.userInfo);
+							} else {
+								console.log('App checkAuthStatus - 使用本地存储的用户信息');
+								this.login(userInfo);
+							}
+							
+							// 恢复邀请码状态
+							if (response.data && response.data.inviteCode) {
+								console.log('App checkAuthStatus - 设置邀请码:', response.data.inviteCode);
+								this.$store.commit('setInviteCode', response.data.inviteCode);
+							} else if (userInfo.invite_code) {
+								console.log('App checkAuthStatus - 使用用户信息中的邀请码:', userInfo.invite_code);
+								this.$store.commit('setInviteCode', userInfo.invite_code);
+							}
+							
+							// 确保 token 正确存储（不要包含 Bearer 前缀）
+							const currentToken = uni.getStorageSync('token');
+							if (currentToken && currentToken.startsWith('Bearer ')) {
+								console.log('App checkAuthStatus - 修正 token 格式（移除 Bearer 前缀）');
+								uni.setStorageSync('token', currentToken.replace('Bearer ', ''));
+							}
+							
+							console.log('App checkAuthStatus - 验证完成，登录状态:', this.$store.state.hasLogin);
+						} else {
+							// Token 无效，清除本地数据
+							console.log('App checkAuthStatus - Token 无效，清除本地数据:', response.message);
+							this.clearLocalAuth();
+						}
+					} catch (error) {
+						console.error('验证 token 失败:', error.message || error);
+						console.error('错误详情:', JSON.stringify(error));
+						
+						// 判断是否为网络错误，网络错误不清除登录状态
+						if (error.message && (
+							error.message.includes('timeout') || 
+							error.message.includes('network') || 
+							error.message.includes('超时')
+						)) {
+							console.log('网络错误，使用本地缓存的用户信息');
+							this.login(userInfo);
+							return;
+						}
+						
+						// Token 验证失败，清除本地数据
+						console.log('App checkAuthStatus - Token 验证失败，清除本地数据');
+						this.clearLocalAuth();
+					}
+				} else {
+					console.log('App checkAuthStatus - 没有本地认证数据');
+				}
+			},
+			
+			// 定期刷新 token
+			startTokenRefresh() {
+				// 如果已经有定时器，先清除
+				if (this.tokenRefreshTimer) {
+					clearInterval(this.tokenRefreshTimer);
+				}
+				
+				// 每30分钟刷新一次 token（1800000毫秒）
+				this.tokenRefreshTimer = setInterval(async () => {
+					const token = uni.getStorageSync('token');
+					if (token) {
+						console.log('定期刷新 token 开始...');
+						try {
+							const { verifyToken } = require('@/api/user.js');
+							const response = await verifyToken();
+							console.log('token 刷新成功');
+						} catch (error) {
+							console.error('token 刷新失败:', error);
+						}
+					} else {
+						console.log('无token，跳过定期刷新');
+					}
+				}, 1800000);
+			},
+			
+			// 清除本地认证数据
+			clearLocalAuth() {
+				uni.removeStorageSync('token');
+				uni.removeStorageSync('userInfo');
+				uni.removeStorageSync('myInviteCode');
+			}
 		},
 		onLaunch: function() {
-			let userInfo = uni.getStorageSync('userInfo') || '';
-			if(userInfo.id){
-				//更新登陆状态
-				uni.getStorage({
-					key: 'userInfo',
-					success: (res) => {
-						this.login(res.data);
-					}
-				});
-			}
-			
+			this.checkAuthStatus();
+			// 启动定期刷新 token
+			this.startTokenRefresh();
 		},
 		onShow: function() {
 			console.log('App Show')
