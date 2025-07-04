@@ -54,6 +54,11 @@
 					<text class="input-label">收款人备注:</text>
 					<input class="input-field" v-model="transferRemark" placeholder="请输入转账备注（可选）" />
 				</view>
+				<view class="test-mode-switch">
+					<text class="switch-label">使用测试模式:</text>
+					<switch :checked="useTestMode" @change="toggleTestMode" color="#ff9500" />
+					<text class="switch-hint">{{ useTestMode ? '模拟转账' : '真实转账' }}</text>
+				</view>
 				<view class="btn-group">
 					<button class="test-btn warning" @click="testTransfer" :loading="transferLoading">
 						{{ transferLoading ? '转账中...' : '商家转账测试' }}
@@ -113,7 +118,10 @@
 				transferRemark: '',
 				
 				// 测试日志
-				logs: []
+				logs: [],
+
+				// 商家转账测试模式
+				useTestMode: true
 			}
 		},
 		computed: {
@@ -278,8 +286,8 @@
 					// 调用真实的转账 API
 					const transferData = {
 						amount: 0.01,
-						description: this.transferRemark || '商家转账测试',
-						testMode: true
+						transfer_remark: this.transferRemark || '商家转账测试',
+						testMode: this.useTestMode // 使用真实转账，不使用测试模式
 					}
 
 					const response = await transferToUser(transferData)
@@ -311,6 +319,12 @@
 				} finally {
 					this.transferLoading = false
 				}
+			},
+
+			// 切换测试模式
+			toggleTestMode(e) {
+				this.useTestMode = e.detail.value
+				this.addLog('info', `切换测试模式：${this.useTestMode ? '模拟转账' : '真实转账'}`)
 			},
 
 			// 添加日志
@@ -463,6 +477,25 @@
 			border-radius: 8upx;
 			background-color: #fafafa;
 			box-sizing: border-box;
+		}
+	}
+
+	.test-mode-switch {
+		display: flex;
+		align-items: center;
+		margin-bottom: 30upx;
+		padding-left: 20upx;
+
+		.switch-label {
+			font-size: 28upx;
+			color: #666;
+			margin-right: 15upx;
+		}
+
+		.switch-hint {
+			font-size: 24upx;
+			color: #999;
+			margin-left: 10upx;
 		}
 	}
 

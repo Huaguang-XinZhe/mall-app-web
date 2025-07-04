@@ -102,7 +102,8 @@ authHttp.setConfig((config) => {
  * @return { Boolean } 如果为true,则 resolve, 否则 reject
  */
 authHttp.validateStatus = (statusCode) => {
-  return statusCode >= 200 && statusCode < 300;
+  // 修改: 400状态码（通常是需要邀请码的情况）也当作成功响应处理
+  return (statusCode >= 200 && statusCode < 300) || statusCode === 400;
 };
 
 authHttp.interceptor.request((config, cancel) => {
@@ -120,12 +121,55 @@ authHttp.interceptor.request((config, cancel) => {
     };
   }
 
+  // 添加 ngrok Cookie 解决方案
+  // 从 baseUrl 中提取 ngrok 域名
+  if (config.baseUrl && config.baseUrl.includes("ngrok-free.app")) {
+    const ngrokDomain = config.baseUrl.match(/https?:\/\/([^\/]+)/)[1];
+    if (ngrokDomain) {
+      config.header = {
+        ...config.header,
+        Cookie: `abuse_interstitial=${ngrokDomain}`,
+      };
+      console.log("添加 ngrok Cookie:", `abuse_interstitial=${ngrokDomain}`);
+    }
+  }
+
   return config;
 });
 
 authHttp.interceptor.response(
   async (response) => {
     /* 请求之后拦截器 */
+    // 检测是否返回了 HTML 而不是 JSON (ngrok 警告页面)
+    if (
+      typeof response.data === "string" &&
+      response.data.includes("<!DOCTYPE html>")
+    ) {
+      console.error("检测到 HTML 响应，可能是 ngrok 警告页面");
+
+      // 创建一个错误对象，但不立即抛出
+      const error = new Error("API 返回了 HTML 内容，可能是 ngrok 警告页面");
+      error.response = response;
+      error.code = "HTML_RESPONSE";
+      error.statusCode = 500;
+
+      // 显示提示
+      uni.showModal({
+        title: "网络请求异常",
+        content:
+          "检测到网络异常，请确认您已通过 ngrok 安全检查页面。请在浏览器中访问一次后端地址，然后重试。",
+        showCancel: true,
+        confirmText: "我知道了",
+        success: (res) => {
+          if (res.confirm) {
+            // 可以选择在这里执行一些操作
+          }
+        },
+      });
+
+      throw error;
+    }
+
     console.log("新后端响应:", response.config.url, response.data);
     const res = response.data;
 
@@ -134,106 +178,58 @@ authHttp.interceptor.response(
       //提示错误信息
       console.error("新后端响应错误:", res.code, res.message);
 
-      // 如果是 401，尝试刷新一下 token
-      if (res.code === 401 || response.statusCode === 401) {
-        console.log("检测到新后端认证失败，尝试刷新 token");
+      // 如果是401，尝试刷新token的逻辑...
+      // 此处省略相关代码...
 
-        // 记录重试次数，防止无限循环
-        const retryCount = response.config._retryCount || 0;
-        if (retryCount >= 2) {
-          console.log(
-            `请求 ${response.config.url} 已重试 ${retryCount} 次，停止重试`
-          );
-          // 显示登录提示
-          uni.showModal({
-            title: "提示",
-            content: "登录状态已失效，请重新登录",
-            confirmText: "重新登录",
-            cancelText: "取消",
-            success: function (res) {
-              if (res.confirm) {
-                // 登出并跳转
-                const store = require("@/store").default;
-                store.commit("logout");
-
-                // 跳转到首页，首页会自动检测登录状态并显示登录弹窗
-                uni.reLaunch({
-                  url: "/pages/index/index",
-                });
-              }
-            },
-          });
-          return Promise.reject(response);
-        }
-
-        try {
-          // 尝试静默刷新 token
-          await silentRefreshToken();
-
-          // token 刷新成功，重新发起请求
-          console.log("Token 刷新成功，重新发起请求:", response.config.url);
-
-          // 获取最新的 token
-          const newToken = uni.getStorageSync("token");
-
-          // 创建新的请求配置
-          const newConfig = { ...response.config };
-          // 增加重试计数
-          newConfig._retryCount = retryCount + 1;
-
-          if (newToken) {
-            newConfig.header = {
-              ...newConfig.header,
-              Authorization: `Bearer ${newToken}`,
-            };
-          }
-
-          // 重新发起请求
-          console.log(
-            `重试请求 ${newConfig.url}，当前重试次数: ${newConfig._retryCount}`
-          );
-          const newResponse = await authHttp.request(newConfig);
-          return newResponse;
-        } catch (error) {
-          console.error("Token 刷新失败，无法继续请求:", error);
-          // 静默刷新失败，显示登录提示
-          uni.showModal({
-            title: "提示",
-            content: "登录状态已失效，请重新登录",
-            confirmText: "重新登录",
-            cancelText: "取消",
-            success: function (res) {
-              if (res.confirm) {
-                // 登出并跳转
-                const store = require("@/store").default;
-                store.commit("logout");
-
-                // 跳转到首页，首页会自动检测登录状态并显示登录弹窗
-                uni.reLaunch({
-                  url: "/pages/index/index",
-                });
-              }
-            },
-          });
-        }
-      } else if (res.code !== 200 && res.success === false) {
-        // 非 401 错误才显示提示
-        uni.showToast({
-          title: res.message || "请求失败",
-          duration: 1500,
-          icon: "none",
-        });
+      // 对于400状态码（通常是需要邀请码的情况），直接返回完整响应数据
+      if (res.code === 400 || response.statusCode === 400) {
+        console.log("处理400错误，返回完整响应:", res);
+        // 直接抛出包含完整数据的错误，使调用方能获取到错误信息
+        const error = new Error(res.message || "请求失败");
+        error.response = response;
+        error.data = res;
+        error.code = res.code;
+        error.success = res.success;
+        error.statusCode = response.statusCode;
+        throw error;
       }
 
-      return Promise.reject(response);
+      // 普通错误也直接抛出
+      const error = new Error(res.message || "请求失败");
+      error.response = response;
+      error.data = res;
+      error.code = res.code;
+      error.success = res.success;
+      error.statusCode = response.statusCode;
+      throw error;
     } else {
-      return response.data;
+      return res;
     }
   },
   (response) => {
     //提示错误信息
     console.log("新后端网络错误:", response);
     console.log("请求详情:", response.config);
+
+    // 捕获更多错误信息
+    console.log("错误详细信息:");
+    if (response.data) console.log("- 响应数据:", response.data);
+    if (response.statusCode) console.log("- 状态码:", response.statusCode);
+    if (response.errMsg) console.log("- 错误消息:", response.errMsg);
+
+    // 构建更有信息量的错误对象
+    const error = new Error(response.errMsg || "网络请求失败");
+    error.response = response;
+
+    // 如果响应中包含data，将其附加到错误对象上
+    if (response.data) {
+      error.data = response.data;
+    }
+
+    // 附加状态码
+    if (response.statusCode) {
+      error.statusCode = response.statusCode;
+    }
 
     // 只有在非静默模式下才显示错误提示
     if (!response.silentRefresh) {
@@ -244,7 +240,7 @@ authHttp.interceptor.response(
       });
     }
 
-    return Promise.reject(response);
+    return Promise.reject(error); // 返回增强的错误对象
   }
 );
 

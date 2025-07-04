@@ -287,6 +287,18 @@
 					console.error('获取邀请统计失败:', error);
 					console.error('错误详情:', error.code, error.message, error.data);
 					
+					// 处理 ngrok HTML 响应错误
+					if (error.code === 'HTML_RESPONSE') {
+						console.log('检测到 ngrok HTML 响应，可能需要先在浏览器中访问后端地址');
+						// 使用本地存储的邀请码
+						const storedInviteCode = uni.getStorageSync('inviteCode');
+						if (storedInviteCode) {
+							console.log('使用本地存储的邀请码:', storedInviteCode);
+							this.userInviteCode = storedInviteCode;
+						}
+						return error;
+					}
+					
 					// 如果是认证错误，可能需要重新登录
 					if (error.code === 401) {
 						console.log('检测到 401 错误，检查本地 token...');

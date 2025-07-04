@@ -17,13 +17,6 @@
 						{{ isLoading ? '登录中...' : '手机号一键登录' }}
 					</button>
 					<!-- #endif -->
-					<!-- #ifndef MP-WEIXIN -->
-					<button class="phone-login-btn" @click="handleMockLogin" :disabled="isLoading">
-						<text class="yticon icon-shouji" v-if="!isLoading"></text>
-						<text class="loading-icon" v-else></text>
-						{{ isLoading ? '登录中...' : '模拟登录（开发环境）' }}
-					</button>
-					<!-- #endif -->
 					
 					<view v-if="pendingInviteCode" class="invite-info">
 						<text class="invite-tip">检测到邀请码：{{ pendingInviteCode }}</text>
@@ -219,60 +212,6 @@
 				}
 			},
 			
-			async handleMockLogin() {
-				// #ifndef MP-WEIXIN
-				// 非小程序环境，模拟登录
-				this.isLoading = true;
-				try {
-					const mockCode = 'mock_code_' + Date.now();
-					const loginParams = {
-						code: mockCode,
-						encryptedData: 'mock_encrypted_data',
-						iv: 'mock_iv',
-						isMock: true
-					};
-					
-					// 只有当 inviteCode 有值且有效时才添加到参数中
-					if (this.inviteCode && this.inviteCode.trim()) {
-						loginParams.inviteCode = this.inviteCode.trim();
-					}
-					
-					console.log('模拟登录参数:', loginParams);
-					const response = await phoneLogin(loginParams);
-					
-					if (response.success) {
-							// 已注册用户，直接登录
-							this.handleLoginSuccess(response.data);
-					} else {
-						uni.showToast({
-							title: response.message || '登录失败',
-							icon: 'none'
-						});
-					}
-				} catch (error) {
-					console.error('模拟登录失败:', error);
-					
-					// 检查是否是需要邀请码的错误响应
-					if (error.data && error.data.needInviteCode) {
-						console.log('检测到新用户需要邀请码（模拟环境）');
-						this.showInviteInput = true;
-						uni.showToast({
-							title: '新用户需要邀请码注册',
-							icon: 'none'
-						});
-						return;
-					}
-					
-					uni.showToast({
-						title: error.message || '登录失败，请重试',
-						icon: 'none'
-					});
-				} finally {
-					this.isLoading = false;
-				}
-				// #endif
-			},
-			
 			async callPhoneLoginAPI(code) {
 				try {
 					// 构建登录参数
@@ -298,41 +237,57 @@
 					console.log('  - iv:', loginParams.iv);
 					console.log('  - inviteCode:', loginParams.inviteCode || '无');
 					
-					console.log('开始调用后端登录接口...');
-					
+					console.log('开始调用phoneLogin API，参数:', JSON.stringify(loginParams));
 					// 调用后端手机号登录接口
 					const response = await phoneLogin(loginParams);
-					
 					console.log('登录接口响应:', JSON.stringify(response));
 					
 					if (response.success) {
 						// 登录成功
 						console.log('登录成功, 用户信息:', JSON.stringify(response.data.userInfo));
-							// 已注册用户，直接登录
-							this.handleLoginSuccess(response.data);
-							
-							// 登录成功后清除待处理的邀请码
-							if (this.pendingInviteCode) {
-								uni.removeStorageSync('pendingInviteCode');
-								console.log('已清除待处理的邀请码');
-							}
+						// 已注册用户，直接登录
+						this.handleLoginSuccess(response.data);
+						
+						// 登录成功后清除待处理的邀请码
+						if (this.pendingInviteCode) {
+							uni.removeStorageSync('pendingInviteCode');
+							console.log('已清除待处理的邀请码');
+						}
 					} else {
 						console.error('登录失败:', response.message, '错误代码:', response.code);
-						uni.showToast({
-							title: response.message || '登录失败',
-							icon: 'none'
-						});
+						
+						// 检查是否为需要邀请码的错误
+						if (response.code === 400 && response.message && response.message.indexOf('邀请码') !== -1) {
+							console.log('从响应中检测到需要邀请码');
+							this.showInviteInput = true;
+							uni.showToast({
+								title: '新用户需要邀请码注册',
+								icon: 'none'
+							});
+						} else {
+							uni.showToast({
+								title: response.message || '登录失败',
+								icon: 'none'
+							});
+						}
 					}
 				} catch (error) {
 					console.error('手机号登录接口调用失败:', error);
-					console.error('错误对象详情:', JSON.stringify(error));
 					
-					// 检查是否是需要邀请码的错误响应
-					if (error.data && error.data.needInviteCode) {
-						console.log('检测到新用户需要邀请码，显示邀请码输入框');
-						// 保存注册所需的信息
-						this.encryptedData = this.encryptedData;
-						this.iv = this.iv;
+					// 简化的错误信息诊断
+					console.log('错误类型:', typeof error);
+					console.log('错误名称:', error.name);
+					console.log('错误消息:', error.message);
+					console.log('错误状态码:', error.statusCode);
+					
+					// 记录错误对象数据
+					if (error.data) {
+						console.log('错误响应数据:', error.data);
+					}
+					
+					// 1. 检查是否是带有邀请码信息的400错误
+					if (error.data && error.data.message && error.data.message.indexOf('邀请码') !== -1) {
+						console.log('接收到邀请码错误');
 						this.showInviteInput = true;
 						uni.showToast({
 							title: '新用户需要邀请码注册',
@@ -341,9 +296,31 @@
 						return;
 					}
 					
-					// 显示错误信息
+					// 2. 检查状态码是否为400（通常表示需要邀请码）
+					if (error.statusCode === 400 || (error.data && error.data.code === 400)) {
+						console.log('接收到400状态码，默认认为需要邀请码');
+						this.showInviteInput = true;
+						uni.showToast({
+							title: '新用户需要邀请码注册',
+							icon: 'none'
+						});
+						return;
+					}
+					
+					// 3. 检查错误消息中是否包含邀请码关键字
+					if (error.message && error.message.indexOf('邀请码') !== -1) {
+						console.log('错误消息中包含邀请码关键字');
+						this.showInviteInput = true;
+						uni.showToast({
+							title: '新用户需要邀请码注册',
+							icon: 'none'
+						});
+						return;
+					}
+					
+					// 4. 其他情况，显示一般错误
 					uni.showToast({
-						title: error.message || '登录失败，请重试',
+						title: (error.data && error.data.message) || error.message || '登录失败，请重试',
 						icon: 'none'
 					});
 				} finally {
