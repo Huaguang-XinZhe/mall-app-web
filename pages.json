@@ -266,6 +266,12 @@
           }
         }
       }
+    },
+    {
+      "path": "pages/test/payTest",
+      "style": {
+        "navigationBarTitleText": "支付功能测试"
+      }
     }
   ],
   "globalStyle": {

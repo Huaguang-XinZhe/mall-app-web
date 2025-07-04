@@ -81,6 +81,7 @@
 				<list-cell icon="icon-shoucang" iconColor="#5fcda2" title="我的关注" @eventClick="navTo('/pages/user/brandAttention')"></list-cell>
 				<list-cell icon="icon-shoucang_xuanzhongzhuangtai" iconColor="#54b4ef" title="我的收藏" @eventClick="navTo('/pages/user/productCollection')"></list-cell> -->
 				<list-cell icon="icon-shezhi1" iconColor="#e07472" title="设置" border="" @eventClick="navTo('/pages/set/set')"></list-cell>
+				<list-cell icon="icon-shouye" iconColor="#e07472" title="测试支付" border="" @eventClick="navTo('/pages/test/payTest')"></list-cell>
 			</view>
 		</view>
 			
@@ -414,7 +415,8 @@
 			 * navigator标签现在默认没有转场动画，所以用view
 			 */
 			navTo(url){
-				if(!this.hasLogin){
+				// 测试支付页面允许未登录用户访问
+				if(!this.hasLogin && url !== '/pages/test/payTest'){
 					url = '/pages/public/login';
 				}
 				uni.navigateTo({  
