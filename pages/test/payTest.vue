@@ -2,7 +2,7 @@
 	<view class="pay-test-container">
 		<view class="header">
 			<text class="title">支付功能测试</text>
-			<text class="subtitle">测试金额：¥0.01</text>
+			<text class="subtitle">测试金额：¥0.10</text>
 		</view>
 
 		<!-- 微信支付测试 -->
@@ -18,7 +18,7 @@
 				</view>
 				<view class="info-item">
 					<text class="label">支付金额:</text>
-					<text class="value price">¥0.01</text>
+					<text class="value price">¥0.10</text>
 				</view>
 				<view class="info-item">
 					<text class="label">支付状态:</text>
@@ -44,7 +44,7 @@
 			<view class="section-content">
 				<view class="info-item">
 					<text class="label">转账金额:</text>
-					<text class="value price">¥0.01</text>
+					<text class="value price">¥0.10</text>
 				</view>
 				<view class="info-item">
 					<text class="label">转账状态:</text>
@@ -91,7 +91,7 @@
 			<view class="help-content">
 				<text>1. 微信支付测试：先创建测试订单，然后进行微信支付</text>
 				<text>2. 商家转账测试：直接点击转账按钮进行测试</text>
-				<text>3. 所有测试金额均为 ¥0.01，确保安全</text>
+				<text>3. 所有测试金额均为 ¥0.10，确保安全</text>
 				<text>4. 请在微信小程序环境下测试支付功能</text>
 			</view>
 		</view>
@@ -173,7 +173,7 @@
 					this.addLog('info', '开始创建测试订单...')
 					
 					const orderData = {
-						amount: 0.01,
+						amount: 0.1,
 						description: '支付功能测试订单',
 						testMode: true
 					}
@@ -213,9 +213,9 @@
 					// 调用后端接口获取支付参数
 					const response = await wxMiniPay({
 						orderId: this.testOrder.id,
-						amount: 0.01,
+						amount: 0.1,
 						description: '微信支付测试',
-						total_fee: 0.01  // 添加 total_fee 参数，确保与 amount 一致
+						total_fee: 0.1  // 添加 total_fee 参数，确保与 amount 一致
 					})
 
 					if (response.success) {
@@ -285,7 +285,7 @@
 
 					// 调用真实的转账 API
 					const transferData = {
-						amount: 0.01,
+						amount: 0.1,
 						transfer_remark: this.transferRemark || '商家转账测试',
 						testMode: this.useTestMode // 使用真实转账，不使用测试模式
 					}

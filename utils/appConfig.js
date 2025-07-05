@@ -11,7 +11,7 @@ export const API_BASE_URL = "https://boyangchuanggu.com";
 // 重要：使用 ngrok 时，系统已自动添加 Cookie: abuse_interstitial=域名
 // 这样可以绕过 ngrok 的安全检查页面，直接访问 API
 export const AUTH_API_BASE_URL =
-  "https://d03b-2408-8948-2001-6458-89b7-8b5a-8c7f-8684.ngrok-free.app";
+  "https://new.boyangchuanggu.com";
 
 //是否启用支付宝支付
 export const USE_ALIPAY = false;
