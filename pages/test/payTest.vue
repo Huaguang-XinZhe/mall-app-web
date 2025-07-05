@@ -285,7 +285,7 @@
 
 					// 调用真实的转账 API
 					const transferData = {
-						amount: 0.1,
+						amount: 0.1, // 0.1元 = 10分
 						transfer_remark: this.transferRemark || '商家转账测试',
 						testMode: this.useTestMode // 使用真实转账，不使用测试模式
 					}
@@ -293,17 +293,73 @@
 					const response = await transferToUser(transferData)
 
 					if (response.success) {
-						this.transferStatus = 2
-						const transferInfo = response.data
-						this.addLog('success', `商家转账成功！转账单号：${transferInfo.billNo || transferInfo.out_batch_no}`)
+						// 获取 package_info 用于拉起微信收款确认页面
+						const packageInfo = response.data.packageInfo || response.data.package_info
 						
-						uni.showToast({
-							title: '转账成功',
-							icon: 'success'
-						})
+						if (packageInfo) {
+							this.addLog('info', '拉起微信收款确认页面...')
+							
+							// #ifdef MP-WEIXIN
+							if (wx.canIUse('requestMerchantTransfer')) {
+								wx.requestMerchantTransfer({
+									// 从环境变量或配置中获取商户号
+									mchId: process.env.VUE_APP_WECHAT_MCH_ID || '1607405749', 
+									appId: wx.getAccountInfoSync().miniProgram.appId,
+									package: packageInfo,
+									success: (res) => {
+										// res.errMsg 将在页面展示成功后返回应用时返回 ok
+										this.addLog('success', `用户确认收款完成: ${res.errMsg}`)
+										this.transferStatus = 2
+										
+										uni.showToast({
+											title: '转账成功',
+											icon: 'success'
+										})
+										
+										// 清空备注
+										this.transferRemark = ''
+									},
+									fail: (res) => {
+										this.addLog('error', `用户确认收款失败: ${res.errMsg}`)
+										this.transferStatus = 3
+										
+										uni.showToast({
+											title: '转账失败',
+											icon: 'none'
+										})
+									}
+								})
+							} else {
+								this.addLog('error', '当前微信版本不支持收款确认功能，请更新至最新版本')
+								uni.showModal({
+									content: '你的微信版本过低，请更新至最新版本。',
+									showCancel: false
+								})
+							}
+							// #endif
+							
+							// #ifndef MP-WEIXIN
+							this.addLog('warning', '请在微信小程序环境下测试转账功能')
+							uni.showModal({
+								title: '提示',
+								content: '请在微信小程序环境下测试转账功能',
+								showCancel: false
+							})
+							// #endif
+						} else {
+							this.transferStatus = 2
+							const transferInfo = response.data
+							this.addLog('success', `商家转账已发起！转账单号：${transferInfo.billNo || transferInfo.out_batch_no}`)
+							this.addLog('warning', '但未获取到 package_info，无法拉起收款确认页面')
+							
+							uni.showToast({
+								title: '转账已发起',
+								icon: 'success'
+							})
 
-						// 清空备注
-						this.transferRemark = ''
+							// 清空备注
+							this.transferRemark = ''
+						}
 					} else {
 						throw new Error(response.message || '转账失败')
 					}
