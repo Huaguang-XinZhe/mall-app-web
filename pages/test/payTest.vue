@@ -303,7 +303,7 @@
 							if (wx.canIUse('requestMerchantTransfer')) {
 								wx.requestMerchantTransfer({
 									// 从环境变量或配置中获取商户号
-									mchId: process.env.VUE_APP_WECHAT_MCH_ID || '1607405749', 
+									mchId: process.env.WECHAT_MCH_ID || '1721095761', 
 									appId: wx.getAccountInfoSync().miniProgram.appId,
 									package: packageInfo,
 									success: (res) => {
