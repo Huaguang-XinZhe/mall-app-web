@@ -1,5 +1,12 @@
 <template>
 	<view class="content">
+		<!-- 地址粘贴解析功能，使用多行 textarea 替换 input -->
+		<view class="row b-b">
+			<text class="tit">粘贴地址</text>
+			<textarea class="input" placeholder="粘贴完整地址自动识别" placeholder-class="placeholder" @input="parseAddress" auto-height />
+			<text class="yticon icon-bianji" @click="showAddressTips"></text>
+		</view>
+		<!-- 下面是原有内容（去掉邮政编码） -->
 		<view class="row b-b">
 			<text class="tit">姓名</text>
 			<input class="input" type="text" v-model="addressData.name" placeholder="收货人姓名" placeholder-class="placeholder" />
@@ -8,18 +15,6 @@
 			<text class="tit">手机号码</text>
 			<input class="input" type="number" v-model="addressData.phoneNumber" placeholder="收货人手机号码" placeholder-class="placeholder" />
 		</view>
-		<view class="row b-b">
-			<text class="tit">邮政编码</text>
-			<input class="input" type="number" v-model="addressData.postCode" placeholder="收货人邮政编码" placeholder-class="placeholder" />
-		</view>
-		
-		<!-- 地址粘贴解析功能 -->
-		<view class="row b-b">
-			<text class="tit">粘贴地址</text>
-			<input class="input" type="text" placeholder="粘贴完整地址自动识别" placeholder-class="placeholder" @input="parseAddress" />
-			<text class="yticon icon-bianji" @click="showAddressTips"></text>
-		</view>
-		
 		<!-- 省市区选择 -->
 		<view class="row b-b">
 			<text class="tit">所在地区</text>
@@ -28,18 +23,15 @@
 			</picker>
 			<text class="yticon icon-you"></text>
 		</view>
-		
 		<!-- 街道选择 -->
 		<view class="row b-b">
 			<text class="tit">所在街道</text>
 			<input class="input" type="text" v-model="addressData.street" placeholder="街道/乡镇" placeholder-class="placeholder" />
 		</view>
-		
 		<view class="row b-b">
 			<text class="tit">详细地址</text>
 			<input class="input" type="text" v-model="addressData.detailAddress" placeholder="小区/楼栋/门牌号等" placeholder-class="placeholder" />
 		</view>
-
 		<view class="row default-row">
 			<text class="tit">设为默认</text>
 			<switch :checked="addressData.defaultStatus==1" color="#fa436a" @change="switchChange" />
@@ -406,6 +398,15 @@
 			color: $font-color-light;
 			padding: 0 10upx;
 		}
+        // 针对粘贴地址的 textarea 样式
+        textarea.input {
+            min-height: 120upx;
+            max-height: 300upx;
+            line-height: 1.6;
+            resize: none;
+            padding: 16upx 0;
+            box-sizing: border-box;
+        }
 	}
 
 	.default-row {
