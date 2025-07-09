@@ -707,17 +707,16 @@
 	}
 </script>
 
-<style lang='scss'>
+<style lang="scss">
 	page {
 		background: $page-color-base;
-		padding-bottom: 160upx;
+		padding-bottom: 100upx;
 	}
 
-	.icon-you {
-		font-size: $font-base + 2upx;
-		color: #888;
-	}
+	.container {
+		padding-bottom: 100upx;
 
+		/* 头部样式 */
 	.carousel {
 		height: 722upx;
 		position: relative;
@@ -759,10 +758,11 @@
 		}
 
 		.title2 {
-			font-size: 28upx;
-			color: $font-color-light;
-			height: 46upx;
-			line-height: 46upx;
+				font-size: 32upx;
+				font-weight: bold;
+				color: $font-color-dark;
+				height: 50upx;
+				line-height: 50upx;
 		}
 
 		.price-box {
@@ -785,7 +785,7 @@
 		}
 
 		.coupon-tip {
-			align-items: center;
+				align-self: center;
 			padding: 4upx 10upx;
 			background: $uni-color-primary;
 			font-size: $font-sm;
@@ -991,10 +991,11 @@
 		}
 	}
 
-	/*  详情 */
+		/* 详情 */
 	.detail-desc {
 		background: #fff;
 		margin-top: 16upx;
+			padding: 20upx;
 
 		.d-header {
 			display: flex;
@@ -1025,7 +1026,7 @@
 		}
 	}
 
-	.detail-desc>>>img {
+		.detail-desc img {
 		width: 100%;
 		height: auto;
 	}
@@ -1043,7 +1044,6 @@
 				flex-shrink: 0;
 				margin-top: -40upx;
 				border-radius: 8upx;
-				;
 			}
 
 			.right {
@@ -1255,13 +1255,12 @@
 		.action-btn-group {
 			display: flex;
 			height: 76upx;
-			border-radius: 38upx;
+				border-radius: 100px;
 			overflow: hidden;
 			box-shadow: 0 20upx 40upx -16upx #fa436a;
-			box-shadow: 0 20upx 40upx -16upx #fa436a;
+				box-shadow: 1px 2px 5px rgba(219, 63, 96, 0.4);
 			background: linear-gradient(to right, #ffac30, #fa436a, #F56C6C);
 			margin-left: 20upx;
-			margin-right: 10upx;
 			position: relative;
 
 			&:after {
@@ -1481,6 +1480,7 @@
 				height: 0;
 				content: '';
 				border-bottom: 1px solid #ccc;
+				}
 			}
 		}
 	}
