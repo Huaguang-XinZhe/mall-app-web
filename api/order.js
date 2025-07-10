@@ -64,6 +64,15 @@ export function wxMiniPayExternal(data) {
   });
 }
 
+// 手动更新外部订单状态
+export function updateExternalOrderStatus(data) {
+  return authRequest({
+    method: "POST",
+    url: "/api/payment/updateExternalOrderStatus",
+    data: data,
+  });
+}
+
 // 商家转账接口 - 使用新后端
 export function transferToUser(data) {
   return authRequest({

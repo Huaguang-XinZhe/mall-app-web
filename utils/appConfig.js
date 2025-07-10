@@ -15,3 +15,19 @@ export const AUTH_API_BASE_URL =
 
 //是否启用支付宝支付
 export const USE_ALIPAY = false;
+
+// ========== 调试模式配置 ==========
+// 
+// 🔧 调试模式功能说明：
+// - 开启时：所有订单支付金额将变为 0.1 元，方便测试微信支付流程
+// - 关闭时：使用订单的实际金额进行支付
+// - 调试支付会在页面和后端日志中显示特殊标识
+// 
+// 🚀 快速切换：
+// - 测试时：设为 true
+// - 生产时：设为 false
+// 
+export const DEBUG_MODE = true; // 设为 false 关闭调试模式
+
+// 调试模式下的测试金额（元）
+export const DEBUG_AMOUNT = 0.1;
