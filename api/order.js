@@ -50,6 +50,20 @@ export function wxMiniPay(data) {
   });
 }
 
+// 外部订单微信小程序支付接口 - 专门处理老后端创建的订单
+export function wxMiniPayExternal(data) {
+  // 确保 total_fee 参数存在，如果不存在则使用 amount 的值
+  if (!data.total_fee && data.amount) {
+    data.total_fee = data.amount;
+  }
+
+  return authRequest({
+    method: "POST",
+    url: "/api/payment/wxMiniPayExternal",
+    data: data,
+  });
+}
+
 // 商家转账接口 - 使用新后端
 export function transferToUser(data) {
   return authRequest({

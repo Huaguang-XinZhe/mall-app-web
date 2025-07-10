@@ -5,44 +5,34 @@
 			<text class="price">{{orderInfo.payAmount}}</text>
 		</view>
 
-		<view class="pay-type-list">
-			<view class="type-item b-b" @click="changePayType(1)">
-				<text class="icon yticon icon-alipay"></text>
-				<view class="con">
-					<text class="tit">支付宝支付</text>
-					<text>推荐使用支付宝支付</text>
-				</view>
-				<label class="radio">
-					<radio value="" color="#fa436a" :checked='payType == 1' />
-				</label>
-			</view>
-			<view class="type-item b-b" @click="changePayType(2)">
+		<view class="payment-info">
+			<view class="payment-method">
 				<text class="icon yticon icon-weixinzhifu"></text>
-				<view class="con">
-					<text class="tit">微信支付</text>
+				<view class="method-info">
+					<text class="method-title">微信支付</text>
+					<text class="method-desc">安全快捷的支付方式</text>
 				</view>
-				<label class="radio">
-					<radio value="" color="#fa436a" :checked='payType == 2' />
-				</label>
 			</view>
 		</view>
 
-		<text class="mix-btn" @click="confirm">确认支付</text>
+		<text class="mix-btn" @click="confirm" :class="{ 'loading': payLoading }">
+			{{ payLoading ? '支付中...' : '确认支付' }}
+		</text>
 	</view>
 </template>
 
 <script>
 	import {
 		fetchOrderDetail,
-		payOrderSuccess
+		wxMiniPayExternal
 	} from '@/api/order.js';
-	import { API_BASE_URL, USE_ALIPAY } from '@/utils/appConfig.js';
+	
 	export default {
 		data() {
 			return {
 				orderId: null,
-				payType: 1,
-				orderInfo: {}
+				orderInfo: {},
+				payLoading: false
 			};
 		},
 		onLoad(options) {
@@ -52,33 +42,80 @@
 			});
 		},
 		methods: {
-			//选择支付方式
-			changePayType(type) {
-				this.payType = type;
-			},
-			//确认支付
-			confirm: async function() {
-				if(USE_ALIPAY){
-					if(this.payType!=1){
-						uni.showToast({
-							title:"暂不支持微信支付！",
-							icon:"none"
-						})
-						return;
-					}
-					window.location.href = API_BASE_URL+"/alipay/webPay?outTradeNo=" + this.orderInfo.orderSn + "&subject=" + this.orderInfo.receiverName + "的商品订单" + "&totalAmount=" + this.orderInfo.totalAmount
-				}else{
-					payOrderSuccess({
-						orderId: this.orderId,
-						payType: this.payType
-					}).then(response => {
-						uni.redirectTo({
-							url: '/pages/money/paySuccess'
-						})
-					});
-				}
+			// 确认微信支付 - 使用新的外部订单支付接口
+			async confirm() {
+				if (this.payLoading) return;
+				
+				try {
+					this.payLoading = true;
+					console.log('开始微信支付，订单ID:', this.orderId);
+					console.log('订单信息:', this.orderInfo);
 
-			},
+					// 调用新的外部订单支付接口
+					const response = await wxMiniPayExternal({
+						orderId: this.orderId,
+						amount: parseFloat(this.orderInfo.payAmount),
+						description: `订单支付-${this.orderInfo.orderSn}`,
+						total_fee: parseFloat(this.orderInfo.payAmount)
+					});
+
+					console.log('支付接口响应:', response);
+
+					if (response.success) {
+						const paymentParams = response.data;
+						console.log('获取支付参数成功:', paymentParams);
+
+						// 调起微信支付
+						// #ifdef MP-WEIXIN
+						uni.requestPayment({
+							provider: 'wxpay',
+							timeStamp: paymentParams.timeStamp,
+							nonceStr: paymentParams.nonceStr,
+							package: paymentParams.package,
+							signType: paymentParams.signType,
+							paySign: paymentParams.paySign,
+							success: (res) => {
+								console.log('微信支付成功:', res);
+								uni.showToast({
+									title: '支付成功',
+									icon: 'success'
+								});
+								// 跳转到支付成功页面
+								uni.redirectTo({
+									url: '/pages/money/paySuccess'
+								});
+							},
+							fail: (err) => {
+								console.error('微信支付失败:', err);
+								uni.showToast({
+									title: `支付失败: ${err.errMsg}`,
+									icon: 'none'
+								});
+							}
+						});
+						// #endif
+
+						// #ifndef MP-WEIXIN
+						uni.showModal({
+							title: '提示',
+							content: '请在微信小程序环境下进行支付',
+							showCancel: false
+						});
+						// #endif
+
+					} else {
+						throw new Error(response.message || '获取支付参数失败');
+					}
+				} catch (error) {
+					console.error('支付失败:', error);
+					uni.showToast({
+						title: error.message || '支付失败',
+						icon: 'none'
+					});
+				} finally {
+					this.payLoading = false;
+				}
+			}
 		}
 	}
 </script>
@@ -86,6 +123,8 @@
 <style lang='scss'>
 	.app {
 		width: 100%;
+		background-color: #f5f5f5;
+		min-height: 100vh;
 	}
 
 	.price-box {
@@ -110,51 +149,38 @@
 		}
 	}
 
-	.pay-type-list {
+	.payment-info {
 		margin-top: 20upx;
 		background-color: #fff;
-		padding-left: 60upx;
-
-		.type-item {
-			height: 120upx;
-			padding: 20upx 0;
+		padding: 30upx 60upx;
+		
+		.payment-method {
 			display: flex;
-			justify-content: space-between;
 			align-items: center;
-			padding-right: 60upx;
-			font-size: 30upx;
-			position: relative;
-		}
-
-		.icon {
-			width: 100upx;
-			font-size: 52upx;
-		}
-
-		.icon-erjiye-yucunkuan {
-			color: #fe8e2e;
-		}
-
-		.icon-weixinzhifu {
-			color: #36cb59;
-		}
-
-		.icon-alipay {
-			color: #01aaef;
-		}
-
-		.tit {
-			font-size: $font-lg;
-			color: $font-color-dark;
-			margin-bottom: 4upx;
-		}
-
-		.con {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			font-size: $font-sm;
-			color: $font-color-light;
+			
+			.icon {
+				width: 100upx;
+				font-size: 52upx;
+				color: #36cb59;
+				margin-right: 30upx;
+			}
+			
+			.method-info {
+				flex: 1;
+				
+				.method-title {
+					display: block;
+					font-size: 32upx;
+					color: #303133;
+					font-weight: bold;
+					margin-bottom: 8upx;
+				}
+				
+				.method-desc {
+					font-size: 26upx;
+					color: #909399;
+				}
+			}
 		}
 	}
 
@@ -170,5 +196,11 @@
 		background-color: $base-color;
 		border-radius: 10upx;
 		box-shadow: 1px 2px 5px rgba(219, 63, 96, 0.4);
+		transition: all 0.3s ease;
+		
+		&.loading {
+			background-color: #ccc;
+			box-shadow: none;
+		}
 	}
 </style>

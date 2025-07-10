@@ -218,24 +218,10 @@
 				}
 				generateOrder(orderParam).then(response => {
 					let orderId = response.data.order.id;
-					uni.showModal({
-						title: '提示',
-						content: '订单创建成功，是否要立即支付？',
-						confirmText:'去支付',
-						cancelText:'取消',
-						success: function(res) {
-							if (res.confirm) {
-								uni.redirectTo({
-									url: `/pages/money/pay?orderId=${orderId}`
-								})
-							} else if (res.cancel) {
-								console.log("cancel")
-								uni.redirectTo({
-									url: '/pages/order/order?state=0'
-								})
-							}
-						}
-					});
+					// 直接跳转到支付页面，不再询问
+					uni.redirectTo({
+						url: `/pages/money/pay?orderId=${orderId}`
+					})
 				});
 			},
 			stopPrevent() {},

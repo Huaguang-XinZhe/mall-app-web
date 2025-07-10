@@ -133,12 +133,6 @@
       }
     },
     {
-      "path": "pages/address/addressManage",
-      "style": {
-        "navigationBarTitleText": ""
-      }
-    },
-    {
       "path": "pages/money/pay",
       "style": {
         "navigationBarTitleText": "支付"
