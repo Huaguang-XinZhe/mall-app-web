@@ -3,7 +3,7 @@
 		<!-- 小程序头部兼容 -->
 		<!-- #ifdef MP -->
 		<view class="mp-search-box">
-			<input class="ser-input" type="text" value="输入关键字搜索" />
+			<input class="ser-input" type="text" value="输入关键字搜索" disabled @tap="navToSearch"/>
 		</view>
 		<!-- #endif -->
 
@@ -384,6 +384,12 @@
 				uni.showToast({
 					title: `${categoryName}功能即将上线`,
 					icon: 'none'
+				});
+			},
+			//搜索页面跳转
+			navToSearch() {
+				uni.navigateTo({
+					url: '/pages/search/search'
 				});
 			}
 		},

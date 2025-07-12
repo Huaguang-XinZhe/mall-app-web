@@ -43,7 +43,7 @@
 			<view class="product-list" v-else>
 				<view class="product-item" v-for="(item, index) in productList" :key="index" @click="navToDetail(item)">
 					<view class="image-wrapper">
-						<image :src="item.pic" mode="aspectFill"></image>
+						<image :src="item.pic" mode="aspectFill" @error="onImageError(index)"></image>
 					</view>
 					<view class="item-info">
 						<text class="title">{{item.name}}</text>
@@ -60,6 +60,7 @@
 
 <script>
 	import uniLoadMore from '@/components/uni-load-more/uni-load-more.vue';
+	import { searchProductList } from '@/api/product.js';
 	
 	export default {
 		components: {
@@ -113,31 +114,64 @@
 			
 			// 执行搜索请求
 			searchProducts() {
-				// 这里应该调用后端API搜索商品
-				// 这里用setTimeout模拟网络请求
-				setTimeout(() => {
-					// 模拟搜索结果
-					let resultList = [];
-					for (let i = 0; i < 10; i++) {
-						resultList.push({
-							id: this.params.pageNum * 10 + i,
-							name: `${this.params.keyword}商品${this.params.pageNum * 10 + i}`,
-							subTitle: `${this.params.keyword}的详细描述信息${this.params.pageNum * 10 + i}`,
-							price: Math.floor(Math.random() * 1000) + 1,
-							pic: 'https://img14.360buyimg.com/n0/jfs/t1/101062/37/21949/137860/61f23eb2E3d4089e5/0b27b38c4c4c1732.jpg'
+				// 调用实际的搜索API
+				searchProductList(this.params).then(response => {
+					console.log('搜索返回数据:', JSON.stringify(response));
+					
+					if (response.code === 200) {
+						const data = response.data;
+						
+						// 添加搜索结果到列表
+						if (data.list && data.list.length > 0) {
+							// 处理每个商品的图片URL
+							const processedList = data.list.map(item => {
+								console.log('商品图片URL:', item.pic);
+								
+								// 如果图片URL不是以http开头，添加基础URL
+								if (item.pic && !item.pic.startsWith('http')) {
+									item.pic = 'https://boyangchuanggu.com' + item.pic;
+								}
+								
+								// 如果没有图片，使用默认图片
+								if (!item.pic) {
+									item.pic = 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/errorImage.jpg';
+								}
+								
+								return item;
+							});
+							
+							this.productList = this.productList.concat(processedList);
+							
+							// 判断是否还有更多数据
+							if (data.list.length < this.params.pageSize) {
+								this.loadingType = 'nomore';
+							} else {
+								this.loadingType = 'more';
+							}
+						} else {
+							// 没有更多数据
+							if (this.params.pageNum > 1) {
+								this.params.pageNum--; // 回退页码
+							}
+							this.loadingType = 'nomore';
+						}
+					} else {
+						uni.showToast({
+							title: response.message || '搜索失败',
+							icon: 'none'
 						});
 					}
 					
-					this.productList = this.productList.concat(resultList);
 					this.loading = false;
-					
-					// 如果是第3页，模拟没有更多数据
-					if (this.params.pageNum >= 3) {
-						this.loadingType = 'nomore';
-					} else {
-						this.loadingType = 'more';
-					}
-				}, 1000);
+				}).catch(error => {
+					console.error('搜索商品出错:', error);
+					uni.showToast({
+						title: '搜索失败，请稍后再试',
+						icon: 'none'
+					});
+					this.loading = false;
+					this.loadingType = 'more';
+				});
 			},
 			
 			// 添加搜索历史
@@ -178,6 +212,13 @@
 				uni.navigateTo({
 					url: `/pages/product/product?id=${item.id}`
 				});
+			},
+
+			// 图片加载错误处理
+			onImageError(index) {
+				console.warn(`图片加载失败，索引: ${index}，URL: ${this.productList[index].pic}`);
+				// 使用默认图片替代
+				this.$set(this.productList[index], 'pic', 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/errorImage.jpg');
 			}
 		}
 	}
