@@ -659,7 +659,15 @@
 			//初始化商品详情信息
 			initProductDesc() {
 				// 直接使用商品的详情HTML，不再使用document对象处理
-				this.desc = this.product.detailMobileHtml;
+				let detailHtml = this.product.detailMobileHtml;
+				
+				// 添加图片适配样式
+				if (detailHtml) {
+					// 为所有图片添加样式，确保宽度适配屏幕
+					detailHtml = detailHtml.replace(/<img/gi, '<img style="width:100%;height:auto;max-width:100%;"');
+				}
+				
+				this.desc = detailHtml;
 			},
 			//处理创建浏览记录
 			/* handleReadHistory() {
@@ -1131,9 +1139,16 @@
 		}
 	}
 
-		.detail-desc img {
-		width: 100%;
-		height: auto;
+	.detail-desc img {
+		width: 100% !important;
+		height: auto !important;
+		max-width: 100% !important;
+	}
+	
+	.detail-desc /deep/ img {
+		width: 100% !important;
+		height: auto !important;
+		max-width: 100% !important;
 	}
 
 	/* 规格选择弹窗 */
