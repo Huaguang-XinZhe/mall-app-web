@@ -213,11 +213,15 @@
 		</view>
 		<!-- 分享 -->
 		<share ref="share" :contentHeight="580" :shareList="shareList"></share>
+		
+		<!-- 登录组件 -->
+		<login-sheet :show="showLoginSheet" @hide="hideLoginSheet"></login-sheet>
 	</view>
 </template>
 
 <script>
 	import share from '@/components/share';
+	import loginSheet from '@/components/login-sheet';
 	import {
 		fetchProductDetail
 	} from '@/api/product.js';
@@ -228,6 +232,9 @@
 		fetchProductCouponList,
 		addMemberCoupon
 	} from '@/api/coupon.js';
+	import {
+		fetchCartList
+	} from '@/api/cart.js';
 	/* import {
 		createReadHistory
 	} from '@/api/memberReadHistory.js';
@@ -275,7 +282,8 @@
 	]
 	export default {
 		components: {
-			share
+			share,
+			loginSheet
 		},
 		data() {
 			return {
@@ -295,7 +303,8 @@
 				attrList: [],
 				promotionTipList: [],
 				couponState: 0,
-				couponList: []
+				couponList: [],
+				showLoginSheet: false
 			};
 		},
 		async onLoad(options) {
@@ -454,9 +463,82 @@
 				}
 			}, */
 			buy() {
-				uni.showToast({
-					title: "暂时只支持从购物车下单！",
-					icon: 'none'
+				if (!this.checkForLogin()) {
+					return;
+				}
+				
+				let productSkuStock = this.getSkuStock();
+				// 检查是否已选择完整的商品规格
+				if (productSkuStock === null) {
+					uni.showToast({
+						title: '请选择完整的商品规格',
+						icon: 'none',
+						duration: 1500
+					});
+					return;
+				}
+				
+				// 确保productAttr是正确格式的字符串
+				let productAttr = productSkuStock.spData;
+				// 如果spData不是字符串，将其转换为字符串
+				if (typeof productAttr !== 'string') {
+					productAttr = JSON.stringify(productAttr);
+				}
+				
+				let cartItem = {
+					price: this.product.price,
+					productAttr: productAttr, // 确保是字符串格式
+					productBrand: this.product.brandName,
+					productCategoryId: this.product.productCategoryId,
+					productId: this.product.id,
+					productName: this.product.name,
+					productPic: this.product.pic,
+					productSkuCode: productSkuStock.skuCode,
+					productSkuId: productSkuStock.id,
+					productSn: this.product.productSn,
+					productSubTitle: this.product.subTitle,
+					quantity: 1
+				};
+				
+				// 先添加到购物车
+				addCartItem(cartItem).then(response => {
+					// 获取新添加的购物车项ID
+					fetchCartList().then(cartResponse => {
+						let cartList = cartResponse.data;
+						// 找到刚刚添加的商品
+						let targetCartItem = cartList.find(item => 
+							item.productId === cartItem.productId && 
+							item.productSkuId === cartItem.productSkuId
+						);
+						
+						if (targetCartItem) {
+							// 直接跳转到创建订单页面
+							let cartIds = [targetCartItem.id];
+							uni.navigateTo({
+								url: `/pages/order/createOrder?cartIds=${JSON.stringify(cartIds)}`
+							});
+						} else {
+							uni.showToast({
+								title: '立即购买失败，请稍后再试',
+								icon: 'none',
+								duration: 1500
+							});
+						}
+					}).catch(error => {
+						console.error('获取购物车列表失败:', error);
+						uni.showToast({
+							title: '立即购买失败，请稍后再试',
+							icon: 'none',
+							duration: 1500
+						});
+					});
+				}).catch(error => {
+					console.error('添加购物车失败:', error);
+					uni.showToast({
+						title: '立即购买失败，请稍后再试',
+						icon: 'none',
+						duration: 1500
+					});
 				});
 			},
 			stopPrevent() {},
@@ -641,9 +723,26 @@
 					return;
 				}
 				let productSkuStock = this.getSkuStock();
+				// 检查是否已选择完整的商品规格
+				if (productSkuStock === null) {
+					uni.showToast({
+						title: '请选择完整的商品规格',
+						icon: 'none',
+						duration: 1500
+					});
+					return;
+				}
+				
+				// 确保productAttr是正确格式的字符串
+				let productAttr = productSkuStock.spData;
+				// 如果spData不是字符串，将其转换为字符串
+				if (typeof productAttr !== 'string') {
+					productAttr = JSON.stringify(productAttr);
+				}
+				
 				let cartItem = {
 					price: this.product.price,
-					productAttr: productSkuStock.spData,
+					productAttr: productAttr, // 确保是字符串格式
 					productBrand: this.product.brandName,
 					productCategoryId: this.product.productCategoryId,
 					productId: this.product.id,
@@ -655,11 +754,21 @@
 					productSubTitle: this.product.subTitle,
 					quantity: 1
 				};
+				
+				console.log('添加到购物车的数据:', JSON.stringify(cartItem));
+				
 				addCartItem(cartItem).then(response => {
 					uni.showToast({
 						title: response.message,
 						duration: 1500
 					})
+				}).catch(error => {
+					console.error('添加购物车失败:', error);
+					uni.showToast({
+						title: '添加购物车失败，请稍后再试',
+						icon: 'none',
+						duration: 1500
+					});
 				});
 			},
 			//检查登录状态并弹出登录框
@@ -670,11 +779,10 @@
 						content: '你还没登录，是否要登录？',
 						confirmText: '去登录',
 						cancelText: '取消',
-						success: function(res) {
+						success: (res) => {
 							if (res.confirm) {
-								uni.navigateTo({
-									url: '/pages/public/login'
-								})
+								// 直接显示登录组件
+								this.showLoginSheet = true;
 							} else if (res.cancel) {
 								console.log('用户点击取消');
 							}
@@ -684,6 +792,11 @@
 				} else {
 					return true;
 				}
+			},
+			
+			// 隐藏登录组件
+			hideLoginSheet() {
+				this.showLoginSheet = false;
 			},
 			//初始化收藏状态
 			/* initProductCollection() {
@@ -1480,8 +1593,8 @@
 				height: 0;
 				content: '';
 				border-bottom: 1px solid #ccc;
-				}
 			}
-		}
-	}
+		                }
+        }
+    }
 </style>
