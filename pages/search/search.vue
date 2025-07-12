@@ -43,7 +43,7 @@
 			<view class="product-list" v-else>
 				<view class="product-item" v-for="(item, index) in productList" :key="index" @click="navToDetail(item)">
 					<view class="image-wrapper">
-						<image :src="item.pic" mode="aspectFill" @error="onImageError(index)"></image>
+						<image :src="item.pic" class="loaded" mode="aspectFill"></image>
 					</view>
 					<view class="item-info">
 						<text class="title">{{item.name}}</text>
@@ -123,24 +123,7 @@
 						
 						// 添加搜索结果到列表
 						if (data.list && data.list.length > 0) {
-							// 处理每个商品的图片URL
-							const processedList = data.list.map(item => {
-								console.log('商品图片URL:', item.pic);
-								
-								// 如果图片URL不是以http开头，添加基础URL
-								if (item.pic && !item.pic.startsWith('http')) {
-									item.pic = 'https://boyangchuanggu.com' + item.pic;
-								}
-								
-								// 如果没有图片，使用默认图片
-								if (!item.pic) {
-									item.pic = 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/errorImage.jpg';
-								}
-								
-								return item;
-							});
-							
-							this.productList = this.productList.concat(processedList);
+							this.productList = this.productList.concat(data.list);
 							
 							// 判断是否还有更多数据
 							if (data.list.length < this.params.pageSize) {
@@ -212,13 +195,6 @@
 				uni.navigateTo({
 					url: `/pages/product/product?id=${item.id}`
 				});
-			},
-
-			// 图片加载错误处理
-			onImageError(index) {
-				console.warn(`图片加载失败，索引: ${index}，URL: ${this.productList[index].pic}`);
-				// 使用默认图片替代
-				this.$set(this.productList[index], 'pic', 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/errorImage.jpg');
 			}
 		}
 	}

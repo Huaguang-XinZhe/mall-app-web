@@ -138,8 +138,8 @@
 			</view> -->
 
 			<view class="action-btn-group">
-				<button type="primary" class=" action-btn no-border buy-now-btn" @click="buy">立即购买</button>
 				<button type="primary" class=" action-btn no-border add-cart-btn" @click="addToCart">加入购物车</button>
+				<button type="primary" class=" action-btn no-border buy-now-btn" @click="buy">立即购买</button>
 			</view>
 		</view>
 
@@ -658,16 +658,8 @@
 			},
 			//初始化商品详情信息
 			initProductDesc() {
-				let rawhtml = this.product.detailMobileHtml;
-				let tempNode = document.createElement('div');
-				tempNode.innerHTML = rawhtml;
-				let imgs = tempNode.getElementsByTagName('img');
-				for (let i = 0; i < imgs.length; i++) {
-					imgs[i].style.width = '100%';
-					imgs[i].style.height = 'auto';
-					imgs[i].style.display = 'block';
-				}
-				this.desc = tempNode.innerHTML;
+				// 直接使用商品的详情HTML，不再使用document对象处理
+				this.desc = this.product.detailMobileHtml;
 			},
 			//处理创建浏览记录
 			/* handleReadHistory() {
