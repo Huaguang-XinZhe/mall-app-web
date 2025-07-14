@@ -123,6 +123,12 @@ export default {
 		}
 		// #endif
 
+		// 添加全局事件监听，用于接收确认收货等状态变更通知
+		uni.$on('orderStatusChanged', this.handleOrderStatusChanged);
+	},
+	onUnload() {
+		// 页面卸载时移除事件监听
+		uni.$off('orderStatusChanged', this.handleOrderStatusChanged);
 	},
 	filters: {
 		formatStatus(status) {
@@ -166,6 +172,12 @@ export default {
 		},
 	},
 	methods: {
+		// 处理订单状态变更事件
+		handleOrderStatusChanged(data) {
+			console.log('收到订单状态变更通知:', data);
+			// 刷新当前订单列表
+			this.loadData('refresh');
+		},
 		//获取订单列表
 		loadData(type = 'refresh') {
 			if (type == 'refresh') {

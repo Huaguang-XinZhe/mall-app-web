@@ -134,8 +134,17 @@
 			// 启动定期刷新 token
 			this.startTokenRefresh();
 		},
-		onShow: function() {
-			console.log('App Show')
+		onShow: function(options) {
+			console.log('App Show', options);
+			console.log('App Show', options.referrerInfo);
+			if (options.referrerInfo.appId === 'wx1183b055aeec94d1') {
+				console.log('收到微信确认收货回调');
+				const extraData = options.referrerInfo.extraData;
+				const { handleWxConfirmReceive } = require('@/utils/orderUtils.js');
+				handleWxConfirmReceive(extraData).catch(err => {
+					console.error('处理微信确认收货失败:', err);
+				});
+			}
 		},
 		onHide: function() {
 			console.log('App Hide')

@@ -84,6 +84,7 @@ export function receiveOrder(orderId, orderSn) {
             wx.openBusinessView({
               businessType: 'weappOrderConfirm',
               extraData: {
+                orderId: orderId,
                 transaction_id: transactionId
               },
               success() {
@@ -171,4 +172,34 @@ export function confirmReceiveByApi(orderId) {
       });
       return Promise.reject(error);
     });
+} 
+
+/**
+ * 处理微信确认收货回调
+ * @param {Object} extraData - 微信确认收货回调的数据
+ * @returns {Promise} - 返回Promise对象
+ */
+export function handleWxConfirmReceive(extraData) {
+  if (!extraData || !extraData.req_extradata || !extraData.req_extradata.orderId) {
+    console.error('确认收货数据不完整', extraData);
+    return Promise.reject(new Error('确认收货数据不完整'));
+  }
+  
+  const orderId = extraData.req_extradata.orderId;
+  
+  if (extraData.status === 'success') {
+    console.log('用户确认收货成功，开始调用API确认收货');
+    return confirmReceiveByApi(orderId)
+      .then(res => {
+        // 确认收货成功后，发送全局事件通知订单列表刷新
+        uni.$emit('orderStatusChanged', {
+          type: 'confirm_receipt',
+          orderId: orderId
+        });
+        return res;
+      });
+  } else {
+    console.log('用户确认收货失败');
+    return Promise.reject(new Error('用户确认收货失败'));
+  }
 } 

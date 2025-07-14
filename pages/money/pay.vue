@@ -33,7 +33,6 @@
 	import {
 		fetchOrderDetail,
 		wxMiniPayExternal,
-		payOrderSuccess,
 		updateExternalOrderStatus
 	} from '@/api/order.js';
 	import { DEBUG_MODE, DEBUG_AMOUNT } from '@/utils/appConfig.js';
@@ -120,47 +119,30 @@
 								console.log('微信支付成功:', res);
 								
 								try {
-									// 双重保障：同时更新老后端和新后端的订单状态
+									// 只更新新后端的订单状态
 									console.log('开始更新订单状态...');
 									
-									// 1. 更新老后端订单状态
-									const oldBackendUpdate = payOrderSuccess({
-										orderId: this.orderId,
-										payType: 2  // 2 表示微信支付
-									});
-									
-									// 2. 更新新后端的外部订单状态
+									// 更新新后端的外部订单状态
 									const newBackendUpdate = updateExternalOrderStatus({
 										orderId: this.orderId,
 										payType: 2
 									});
 									
-									// 等待两个更新操作完成
-									const [oldResult, newResult] = await Promise.allSettled([
-										oldBackendUpdate, 
-										newBackendUpdate
-									]);
+									// 等待更新操作完成
+									const newResult = await newBackendUpdate;
 									
-									console.log('老后端订单状态更新结果:', oldResult);
 									console.log('新后端订单状态更新结果:', newResult);
 									
 									let successCount = 0;
-									if (oldResult.status === 'fulfilled' && oldResult.value.code === 200) {
-										console.log('✅ 老后端订单状态更新成功');
-										successCount++;
-									} else {
-										console.warn('⚠️ 老后端订单状态更新失败:', oldResult.reason || oldResult.value?.message);
-									}
-									
-									if (newResult.status === 'fulfilled' && newResult.value.success) {
+									if (newResult.success) {
 										console.log('✅ 新后端订单状态更新成功');
 										successCount++;
 									} else {
-										console.warn('⚠️ 新后端订单状态更新失败:', newResult.reason || newResult.value?.message);
+										console.warn('⚠️ 新后端订单状态更新失败:', newResult.message);
 									}
 									
 									if (successCount > 0) {
-										console.log(`📊 订单状态更新完成，成功 ${successCount}/2 个后端`);
+										console.log(`📊 订单状态更新完成`);
 									}
 									
 								} catch (updateError) {
