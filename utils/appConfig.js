@@ -13,6 +13,10 @@ export const API_BASE_URL = "https://boyangchuanggu.com";
 export const AUTH_API_BASE_URL =
   "https://new.boyangchuanggu.com";
 
+// 微信物流API（物流查询、物流跟踪等）
+// 与AUTH_API_BASE_URL使用相同的域名，路径为/api/wx-delivery
+// 例如：https://new.boyangchuanggu.com/api/wx-delivery/token/{orderSn}
+
 //是否启用支付宝支付
 export const USE_ALIPAY = false;
 
@@ -27,7 +31,7 @@ export const USE_ALIPAY = false;
 // - 测试时：设为 true
 // - 生产时：设为 false
 // 
-export const DEBUG_MODE = false; // 设为 false 关闭调试模式
+export const DEBUG_MODE = true; // 设为 false 关闭调试模式
 
 // 调试模式下的测试金额（元）
 export const DEBUG_AMOUNT = 0.1;

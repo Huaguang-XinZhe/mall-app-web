@@ -95,8 +95,9 @@
 				<button class="action-btn recom" @click="payOrder(order.id)">立即付款</button>
 			</view>
 			<view class="action-box b-t" v-if="order.status == 2">
-				<button class="action-btn">查看物流</button>
-				<button class="action-btn recom" @click="receiveOrder(order.id)">确认收货</button>
+				<!-- 修改按钮样式和事件绑定方式 -->
+				<view class="action-btn logistics-btn" @tap="checkLogistics(order.orderSn)">查看物流</view>
+				<view class="action-btn recom" @tap="receiveOrder(order.id)">确认收货</view>
 			</view>
 			<view class="price-content" v-if="order.status==0">
 				<text>应付金额</text>
@@ -117,18 +118,33 @@
 	import {
 		formatDate
 	} from '@/utils/date';
+	import { AUTH_API_BASE_URL } from '@/utils/appConfig.js';
+	import { checkLogistics } from '@/utils/requestUtil.js';
 	export default {
 		data() {
 			return {
 				orderId: null,
 				order: {},
-				orderStatus: {}
+				orderStatus: {},
+				waybillToken: '', // 物流单token
 			}
 		},
 		onLoad(option) {
 			//商品数据
+			console.log('订单详情页面加载', option);
 			this.orderId = option.orderId;
 			this.loadData();
+			
+		},
+		onShow() {
+			console.log('页面显示');
+			// 检查按钮是否存在
+			setTimeout(() => {
+				const query = uni.createSelectorQuery();
+				query.select('.logistics-btn').boundingClientRect(data => {
+					console.log('物流按钮元素:', data);
+				}).exec();
+			}, 1000);
 		},
 		filters: {
 			formatProductAttr(jsonAttr) {
@@ -166,6 +182,86 @@
 				fetchOrderDetail(this.orderId).then(response => {
 					this.order = response.data;
 					this.setOrderStatus(this.order.status);
+					
+					// 如果订单已发货，获取物流信息
+					if (this.order.status == 2 || this.order.status == 3) {
+						this.getLogisticsToken(this.order.orderSn);
+					}
+				});
+			},
+			// 获取物流查询token
+			async getLogisticsToken(orderSn) {
+				try {
+					console.log('开始获取物流token, orderSn:', orderSn);
+					
+					// 检查appConfig是否正确配置
+					console.log('baseUrl配置:', this.$appConfig ? this.$appConfig.baseUrl : '未配置');
+					
+					// 调用公共物流查询方法
+					const deliverySn = this.order.deliverySn;
+					const orderId = this.orderId; // 使用订单ID而不是订单编号
+					
+					if (!orderId) {
+						console.error('订单ID无效:', orderId);
+						uni.showToast({
+							title: '订单信息不完整',
+							icon: 'none'
+						});
+						return;
+					}
+					
+					if (deliverySn) {
+						this.checkLogistics(orderId, deliverySn);
+					} else {
+						uni.showToast({
+							title: '暂无物流信息',
+							icon: 'none'
+						});
+					}
+				} catch (e) {
+					console.error('获取物流token异常:', e);
+					uni.showToast({
+						title: '系统异常，请稍后再试',
+						icon: 'none'
+					});
+				}
+			},
+			// 查看物流
+			checkLogistics(orderId, deliverySn) {
+				console.log('查看物流按钮被点击', orderId);
+				
+				// 确认参数有效性
+				if (!orderId || !deliverySn) {
+					console.error('订单ID或物流单号无效', orderId, deliverySn);
+					uni.showToast({
+						title: '订单信息不完整，无法查询物流',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 获取商品信息
+				let goodsName = '订单商品';
+				let goodsImgUrl = '';
+				
+				// 如果订单有商品，获取第一个商品的信息
+				if (this.order.orderItemList && this.order.orderItemList.length > 0) {
+					const firstItem = this.order.orderItemList[0];
+					goodsName = firstItem.productName || '订单商品';
+					goodsImgUrl = firstItem.productPic || '';
+				}
+				
+				console.log(`准备查询物流: 订单ID=${orderId}, 物流单号=${deliverySn}, 商品=${goodsName}`);
+				
+				// 使用公共的物流查询方法，并传递商品信息
+				checkLogistics(orderId, deliverySn, {
+					goodsName,
+					goodsImgUrl
+				}).then(token => {
+					console.log('物流查询成功，token:', token);
+					this.waybillToken = token;
+				}).catch(err => {
+					console.error('物流查询失败:', err);
 				});
 			},
 			submit() {},
@@ -256,7 +352,7 @@
 						}
 						break;
 				};
-			}
+			},
 		}
 	}
 </script>
@@ -750,6 +846,9 @@
 		color: $font-color-dark;
 		background: #fff;
 		border-radius: 100px;
+		position: relative; /* 确保定位正确 */
+		z-index: 10; /* 提高z-index确保可点击 */
+		border: 1px solid #eee; /* 添加边框使按钮更明显 */
 
 		&:after {
 			border-radius: 100px;
@@ -763,5 +862,18 @@
 				border-color: #f7bcc8;
 			}
 		}
+		
+		/* 添加物流按钮特殊样式 */
+		&.logistics-btn {
+			background: #e6f7ff;
+			color: #0066cc;
+			border: 1px solid #91d5ff;
+		}
+	}
+	
+	/* 添加点击效果 */
+	.action-btn:active {
+		opacity: 0.7;
+		transform: scale(0.98);
 	}
 </style>

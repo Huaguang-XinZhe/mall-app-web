@@ -254,4 +254,130 @@ export function request(options = {}) {
   return http.request(options);
 }
 
+/**
+ * 查询物流信息，获取物流查询token并打开物流查询小程序
+ * @param {String} orderId - 订单ID
+ * @param {String} deliverySn - 物流单号
+ * @param {Object} options - 额外选项
+ * @param {String} options.goodsName - 商品名称
+ * @param {String} options.goodsImgUrl - 商品图片URL
+ * @returns {Promise} - 返回Promise对象
+ */
+export function checkLogistics(orderId, deliverySn, options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!deliverySn) {
+      uni.showToast({
+        title: '暂无物流信息',
+        icon: 'none'
+      });
+      reject(new Error('暂无物流信息'));
+      return;
+    }
+    
+    // 显示加载中
+    uni.showLoading({
+      title: '加载中...'
+    });
+    
+    // 获取当前token
+    const token = uni.getStorageSync('token');
+    
+    // 从appConfig中导入API基础URL
+    const { AUTH_API_BASE_URL } = require('@/utils/appConfig.js');
+    
+    // 准备请求参数 - 直接传递物流单号
+    const requestData = {
+      deliverySn: deliverySn
+    };
+    
+    // 如果提供了商品信息，添加到请求参数中
+    if (options.goodsName) {
+      requestData.goodsName = options.goodsName;
+    }
+    
+    if (options.goodsImgUrl) {
+      requestData.goodsImgUrl = options.goodsImgUrl;
+    }
+    
+    console.log(`准备请求物流信息: 订单ID=${orderId}, 物流单号=${deliverySn}, 商品名称=${options.goodsName || '未提供'}`);
+    
+    // 获取物流查询token - 确保路径与后端匹配
+    uni.request({
+      url: AUTH_API_BASE_URL + '/api/wx-delivery/token/' + orderId,
+      method: 'GET',
+      data: requestData,
+      header: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      success: (res) => {
+        console.log('获取物流token响应:', res);
+        uni.hideLoading();
+        
+        if (res.statusCode === 200 && res.data && res.data.code === 200 && res.data.data && res.data.data.waybillToken) {
+          // 调用物流插件
+          const waybillToken = res.data.data.waybillToken;
+          console.log('获取到物流token:', waybillToken);
+          
+          // 使用物流插件API打开物流查询
+          if (typeof wx !== 'undefined') {
+            console.log('准备使用物流插件打开物流查询');
+            try {
+              const plugin = requirePlugin("logisticsPlugin");
+              plugin.openWaybillTracking({
+                waybillToken: waybillToken,
+                success(res) {
+                  console.log('打开物流查询成功', res);
+                  resolve(waybillToken);
+                },
+                fail(err) {
+                  console.error('打开物流查询失败', err);
+                  uni.showToast({
+                    title: '打开物流查询失败: ' + (err.errMsg || JSON.stringify(err)),
+                    icon: 'none',
+                    duration: 3000
+                  });
+                  reject(err);
+                }
+              });
+            } catch (err) {
+              console.error('加载物流插件失败', err);
+              uni.showToast({
+                title: '加载物流插件失败，请确保已在app.json中配置插件',
+                icon: 'none',
+                duration: 3000
+              });
+              reject(err);
+            }
+          } else {
+            console.error('当前环境不支持物流查询插件');
+            uni.showToast({
+              title: '当前环境不支持物流查询',
+              icon: 'none'
+            });
+            reject(new Error('当前环境不支持物流查询'));
+          }
+        } else {
+          console.error('获取物流token失败:', res);
+          uni.showToast({
+            title: '获取物流信息失败: ' + (res.data && res.data.message ? res.data.message : '服务器响应异常'),
+            icon: 'none',
+            duration: 3000
+          });
+          reject(new Error('获取物流token失败'));
+        }
+      },
+      fail: (err) => {
+        uni.hideLoading();
+        console.error('获取物流token请求失败:', err);
+        uni.showToast({
+          title: '获取物流信息失败: ' + (err.errMsg || JSON.stringify(err)),
+          icon: 'none',
+          duration: 3000
+        });
+        reject(err);
+      }
+    });
+  });
+}
+
 export default request;

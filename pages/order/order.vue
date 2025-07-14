@@ -14,11 +14,11 @@
 					<empty v-if="orderList==null||orderList.length === 0"></empty>
 
 					<!-- 订单列表 -->
-					<view v-for="(item,index) in orderList" :key="index" class="order-item">
+					<view v-for="(item,index) in orderList" :key="index" class="order-item" @tap="showOrderDetail(item.id)">
 						<view class="i-top b-b">
-							<text class="time" @click="showOrderDetail(item.id)">{{item.createTime | formatDateTime}}</text>
+							<text class="time">{{item.createTime | formatDateTime}}</text>
 							<text class="state" :style="{color: '#fa436a'}">{{item.status | formatStatus}}</text>
-							<text v-if="item.status===3||item.status===4" class="del-btn yticon icon-iconfontshanchu1" @click="deleteOrder(item.id)"></text>
+							<text v-if="item.status===3||item.status===4" class="del-btn yticon icon-iconfontshanchu1" @tap.stop="deleteOrder(item.id)"></text>
 						</view>
 						<view class="goods-box-single" v-for="(orderItem, itemIndex) in item.orderItemList"
 						 :key="itemIndex">
@@ -37,12 +37,12 @@
 							<text class="price">{{item.payAmount}}</text>
 						</view>
 						<view class="action-box b-t" v-if="item.status == 0">
-							<button class="action-btn" @click="cancelOrder(item.id)">取消订单</button>
-							<button class="action-btn recom" @click="payOrder(item.id)">立即付款</button>
+							<button class="action-btn" @tap.stop="cancelOrder(item.id)">取消订单</button>
+							<button class="action-btn recom" @tap.stop="payOrder(item.id)">立即付款</button>
 						</view>
 						<view class="action-box b-t" v-if="item.status == 2">
-							<button class="action-btn" >查看物流</button>
-							<button class="action-btn recom" @click="receiveOrder(item.id)">确认收货</button>
+							<view class="action-btn" @tap.stop="checkLogistics(item.id, item.deliverySn)">查看物流</view>
+							<button class="action-btn recom" @tap.stop="receiveOrder(item.id)">确认收货</button>
 						</view>
 					</view>
 
@@ -66,6 +66,8 @@
 		confirmReceiveOrder,
 		deleteUserOrder
 	} from '@/api/order.js';
+	import { AUTH_API_BASE_URL } from '@/utils/appConfig.js';
+	import { checkLogistics } from '@/utils/requestUtil.js';
 	export default {
 		components: {
 			uniLoadMore,
@@ -289,6 +291,44 @@
 				}
 				return totalQuantity;
 			},
+			// 查看物流
+			checkLogistics(orderId, deliverySn) {
+				console.log('查看物流', orderId, deliverySn);
+				
+				// 确认参数有效性
+				if (!orderId || !deliverySn) {
+					console.error('订单ID或物流单号无效', orderId, deliverySn);
+					uni.showToast({
+						title: '订单信息不完整，无法查询物流',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 获取当前订单的商品信息
+				const currentOrder = this.orderList.find(order => order.id === orderId);
+				let goodsName = '订单商品';
+				let goodsImgUrl = '';
+				
+				// 如果找到订单且有商品，获取第一个商品的信息
+				if (currentOrder && currentOrder.orderItemList && currentOrder.orderItemList.length > 0) {
+					const firstItem = currentOrder.orderItemList[0];
+					goodsName = firstItem.productName || '订单商品';
+					goodsImgUrl = firstItem.productPic || '';
+				}
+				
+				console.log(`准备查询物流: 订单ID=${orderId}, 物流单号=${deliverySn}, 商品=${goodsName}`);
+				
+				// 使用公共的物流查询方法，并传递商品信息
+				checkLogistics(orderId, deliverySn, {
+					goodsName,
+					goodsImgUrl
+				}).then(token => {
+					console.log('物流查询成功，token:', token);
+				}).catch(err => {
+					console.error('物流查询失败:', err);
+				});
+			}
 		},
 	}
 </script>
