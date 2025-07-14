@@ -57,11 +57,16 @@ export function receiveOrder(orderId, orderSn) {
     title: '获取订单信息...'
   });
 
-  // 如果没有订单编号，直接使用传统方式确认收货
+  // 如果没有订单编号，直接提示
   if (!orderSn) {
-    console.warn('未提供订单编号，使用传统方式确认收货');
+    console.warn('未提供订单编号，无法确认收货');
     uni.hideLoading();
-    return confirmReceiveByApi(orderId);
+    uni.showToast({
+      title: '请在服务号消息中确认收货',
+      icon: 'none',
+      duration: 2500
+    });
+    return Promise.resolve({ success: true, message: '已提示用户在服务号中确认收货' });
   }
 
   // 从后端获取微信交易单号
@@ -75,7 +80,7 @@ export function receiveOrder(orderId, orderSn) {
 
         // 拉起确认收货组件
         if (typeof wx !== 'undefined' && wx.openBusinessView) {
-          return new Promise((resolve, reject) => {
+          return new Promise((resolve) => {
             wx.openBusinessView({
               businessType: 'weappOrderConfirm',
               extraData: {
@@ -87,45 +92,47 @@ export function receiveOrder(orderId, orderSn) {
               },
               fail(err) {
                 console.error('拉起确认收货组件失败', err);
-                // 如果拉起组件失败，则使用传统方式确认收货
-                return confirmReceiveByApi(orderId)
-                  .then(resolve)
-                  .catch(reject);
+                uni.showToast({
+                  title: '请在服务号消息中确认收货',
+                  icon: 'none',
+                  duration: 2500
+                });
+                resolve({ success: true, message: '已提示用户在服务号中确认收货' });
               },
               complete() {
                 console.log('隐藏确认收货组件');
-                // 只要隐藏组件，就调用传统方式确认收货
-                confirmReceiveByApi(orderId)
-                  .then(resolve)
-                  .catch(reject);
+                // 不再自动调用传统方式确认收货
               }
             });
           });
         } else {
-          console.log('当前环境不支持微信确认收货组件，使用传统方式确认收货');
-          return confirmReceiveByApi(orderId);
+          console.log('当前环境不支持微信确认收货组件');
+          uni.showToast({
+            title: '请在服务号消息中确认收货',
+            icon: 'none',
+            duration: 2500
+          });
+          return Promise.resolve({ success: true, message: '已提示用户在服务号中确认收货' });
         }
       } else {
         console.error('获取交易单号失败:', response);
         uni.showToast({
-          title: '获取交易信息失败，使用传统方式确认收货',
+          title: '请在服务号消息中确认收货',
           icon: 'none',
-          duration: 2000
+          duration: 2500
         });
-        // 使用传统方式确认收货
-        return confirmReceiveByApi(orderId);
+        return Promise.resolve({ success: true, message: '已提示用户在服务号中确认收货' });
       }
     })
     .catch(error => {
       uni.hideLoading();
       console.error('获取交易单号出错:', error);
       uni.showToast({
-        title: '获取交易信息失败，使用传统方式确认收货',
+        title: '请在服务号消息中确认收货',
         icon: 'none',
-        duration: 2000
+        duration: 2500
       });
-      // 使用传统方式确认收货
-      return confirmReceiveByApi(orderId);
+      return Promise.resolve({ success: true, message: '已提示用户在服务号中确认收货' });
     });
 }
 

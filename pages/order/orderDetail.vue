@@ -253,26 +253,15 @@
 			},
 			//确认收货
 			receiveOrder(orderId) {
-				let superThis = this;
-				uni.showModal({
-					title: '提示',
-					content: '是否要确认收货？',
-					success: function(res) {
-						if (res.confirm) {
-							// 调用公共的确认收货方法
-							receiveOrder(orderId, superThis.order.orderSn)
-								.then(() => {
-									// 刷新订单详情
-									superThis.loadData();
-								})
-								.catch(error => {
-									console.error('确认收货失败:', error);
-								});
-						} else if (res.cancel) {
-							console.log('用户点击取消');
-						}
-					}
-				});
+				// 直接调用公共的确认收货方法，不再显示确认对话框
+				receiveOrder(orderId, this.order.orderSn)
+					.then(() => {
+						// 刷新订单详情
+						this.loadData();
+					})
+					.catch(error => {
+						console.error('确认收货失败:', error);
+					});
 			},
 			//设置订单状态信息
 			setOrderStatus(status) {

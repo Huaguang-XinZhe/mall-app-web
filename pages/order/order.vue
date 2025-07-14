@@ -267,24 +267,15 @@ export default {
 				return;
 			}
 			
-			// 显示确认对话框
-			uni.showModal({
-				title: '提示',
-				content: '是否要确认收货？',
-				success: (res) => {
-					if (res.confirm) {
-						// 调用公共的确认收货方法
-						receiveOrder(order.id, order.orderSn)
-							.then(() => {
-								// 刷新订单列表
-								this.loadData();
-							})
-							.catch(error => {
-								console.error('确认收货失败:', error);
-							});
-					}
-				}
-			});
+			// 直接调用确认收货方法，不再显示确认对话框
+			receiveOrder(order.id, order.orderSn)
+				.then(() => {
+					// 刷新订单列表
+					this.loadData();
+				})
+				.catch(error => {
+					console.error('确认收货失败:', error);
+				});
 		},
 		
 		// 处理查看物流
