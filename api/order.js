@@ -138,3 +138,11 @@ export function fetchAliapyStatus(params) {
     params: params,
   });
 }
+
+// 获取微信交易单号 - 用于微信确认收货组件
+export function getWxTransactionId(orderSn) {
+  return authRequest({
+    method: "GET",
+    url: `/api/payment/getWxTransactionId/${orderSn}`,
+  });
+}

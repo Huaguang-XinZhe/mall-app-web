@@ -112,14 +112,13 @@
 <script>
 	import {
 		fetchOrderDetail,
-		cancelUserOrder,
-		confirmReceiveOrder
+		cancelUserOrder
 	} from '@/api/order.js';
 	import {
 		formatDate
 	} from '@/utils/date';
 	import { AUTH_API_BASE_URL } from '@/utils/appConfig.js';
-	import { checkLogistics } from '@/utils/requestUtil.js';
+	import { checkLogistics, receiveOrder } from '@/utils/orderUtils.js';
 	export default {
 		data() {
 			return {
@@ -182,88 +181,45 @@
 				fetchOrderDetail(this.orderId).then(response => {
 					this.order = response.data;
 					this.setOrderStatus(this.order.status);
-					
-					// 如果订单已发货，获取物流信息
-					if (this.order.status == 2 || this.order.status == 3) {
-						this.getLogisticsToken(this.order.orderSn);
-					}
 				});
 			},
-			// 获取物流查询token
-			async getLogisticsToken(orderSn) {
-				try {
-					console.log('开始获取物流token, orderSn:', orderSn);
-					
-					// 检查appConfig是否正确配置
-					console.log('baseUrl配置:', this.$appConfig ? this.$appConfig.baseUrl : '未配置');
-					
-					// 调用公共物流查询方法
-					const deliverySn = this.order.deliverySn;
-					const orderId = this.orderId; // 使用订单ID而不是订单编号
-					
-					if (!orderId) {
-						console.error('订单ID无效:', orderId);
-						uni.showToast({
-							title: '订单信息不完整',
-							icon: 'none'
-						});
-						return;
-					}
-					
-					if (deliverySn) {
-						this.checkLogistics(orderId, deliverySn);
-					} else {
-						uni.showToast({
-							title: '暂无物流信息',
-							icon: 'none'
-						});
-					}
-				} catch (e) {
-					console.error('获取物流token异常:', e);
-					uni.showToast({
-						title: '系统异常，请稍后再试',
-						icon: 'none'
-					});
-				}
-			},
+			
 			// 查看物流
-			checkLogistics(orderId, deliverySn) {
-				console.log('查看物流按钮被点击', orderId);
+			checkLogistics(orderSn) {
+				console.log('查看物流按钮被点击', orderSn);
 				
-				// 确认参数有效性
-				if (!orderId || !deliverySn) {
-					console.error('订单ID或物流单号无效', orderId, deliverySn);
+				if (!this.order || !this.order.deliverySn) {
 					uni.showToast({
-						title: '订单信息不完整，无法查询物流',
+						title: '暂无物流信息',
 						icon: 'none'
 					});
 					return;
 				}
 				
-				// 获取商品信息
-				let goodsName = '订单商品';
-				let goodsImgUrl = '';
+				// 准备商品信息
+				let goodsInfo = {
+					goodsName: '订单商品',
+					goodsImgUrl: ''
+				};
 				
 				// 如果订单有商品，获取第一个商品的信息
 				if (this.order.orderItemList && this.order.orderItemList.length > 0) {
 					const firstItem = this.order.orderItemList[0];
-					goodsName = firstItem.productName || '订单商品';
-					goodsImgUrl = firstItem.productPic || '';
+					goodsInfo.goodsName = firstItem.productName || '订单商品';
+					goodsInfo.goodsImgUrl = firstItem.productPic || '';
 				}
 				
-				console.log(`准备查询物流: 订单ID=${orderId}, 物流单号=${deliverySn}, 商品=${goodsName}`);
-				
-				// 使用公共的物流查询方法，并传递商品信息
-				checkLogistics(orderId, deliverySn, {
-					goodsName,
-					goodsImgUrl
-				}).then(token => {
-					console.log('物流查询成功，token:', token);
-					this.waybillToken = token;
-				}).catch(err => {
-					console.error('物流查询失败:', err);
-				});
+				// 调用公共的查看物流方法
+				checkLogistics(this.orderId, this.order.deliverySn, goodsInfo)
+					.then(token => {
+						console.log('物流查询成功，token:', token);
+						this.waybillToken = token;
+					})
+					.catch(err => {
+						console.error('物流查询失败:', err);
+					});
 			},
+			
 			submit() {},
 			stopPrevent() {},
 			//取消订单
@@ -303,15 +259,15 @@
 					content: '是否要确认收货？',
 					success: function(res) {
 						if (res.confirm) {
-							uni.showLoading({
-								title: '请稍后'
-							})
-							confirmReceiveOrder({
-								orderId: orderId
-							}).then(response => {
-								uni.hideLoading();
-								superThis.loadData();
-							});
+							// 调用公共的确认收货方法
+							receiveOrder(orderId, superThis.order.orderSn)
+								.then(() => {
+									// 刷新订单详情
+									superThis.loadData();
+								})
+								.catch(error => {
+									console.error('确认收货失败:', error);
+								});
 						} else if (res.cancel) {
 							console.log('用户点击取消');
 						}
