@@ -74,6 +74,32 @@ export function getInviteStats() {
   });
 }
 
+// 获取邀请提现信息
+export function getInviteWithdrawInfo() {
+  return authRequest({
+    method: "GET",
+    url: "/api/withdraw/info",
+  });
+}
+
+// 申请提现
+export function requestWithdraw(params) {
+  return authRequest({
+    method: "POST",
+    url: "/api/withdraw/request",
+    data: params,
+  });
+}
+
+// 获取提现记录
+export function getWithdrawRecords(params) {
+  return authRequest({
+    method: "GET",
+    url: "/api/withdraw/records",
+    params: params,
+  });
+}
+
 // === 原有商城相关接口（保持兼容） ===
 
 // 获取用户邀请码（如果原系统有的话）

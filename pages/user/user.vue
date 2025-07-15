@@ -74,7 +74,7 @@
 			<!-- 浏览历史 -->
 			<view class="history-section icon">
 				<!-- #ifdef MP-WEIXIN -->
-				<list-cell icon="icon-fenxiang2" iconColor="#FA436A" title="邀请统计" @eventClick="navTo('/pages/user/inviteStats')"></list-cell>
+				<list-cell icon="icon-fenxiang2" iconColor="#FA436A" title="邀请提现" @eventClick="navTo('/pages/user/inviteStats')"></list-cell>
 				<!-- #endif -->
 				<list-cell icon="icon-dizhi" iconColor="#5fcda2" title="地址管理" @eventClick="navTo('/pages/address/address')"></list-cell>
 				<!-- <list-cell icon="icon-lishijilu" iconColor="#e07472" title="我的足迹" @eventClick="navTo('/pages/user/readHistory')"></list-cell>
@@ -269,10 +269,21 @@
 			},
 			
 			/**
-			 * 只刷新邀请统计信息
+			 * 刷新邀请统计信息
 			 */
 			async refreshInviteStats() {
 				try {
+					// 检查本地缓存中是否有邀请信息，且未过期
+					const cachedInviteInfo = uni.getStorageSync('inviteInfo');
+					const now = new Date().getTime();
+					
+					if (cachedInviteInfo && cachedInviteInfo.expireTime > now) {
+						console.log('使用本地缓存的邀请信息:', cachedInviteInfo);
+						this.userInviteCode = cachedInviteInfo.inviteCode;
+						this.setInviteCode(cachedInviteInfo.inviteCode);
+						return cachedInviteInfo;
+					}
+					
 					// 获取邀请统计信息
 					console.log('调用 getInviteStats...');
 					const inviteRes = await getInviteStats();
@@ -281,6 +292,13 @@
 					if (inviteRes.success && inviteRes.data) {
 						this.userInviteCode = inviteRes.data.inviteCode;
 						this.setInviteCode(inviteRes.data.inviteCode);
+						
+						// 存储邀请信息到本地缓存，设置1分钟过期时间
+						const inviteInfo = {
+							...inviteRes.data,
+							expireTime: now + 60000 // 当前时间 + 1分钟
+						};
+						uni.setStorageSync('inviteInfo', inviteInfo);
 					}
 					return inviteRes;
 				} catch (error) {
