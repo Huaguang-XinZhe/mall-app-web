@@ -31,7 +31,7 @@ export const USE_ALIPAY = false;
 // - 测试时：设为 true
 // - 生产时：设为 false
 // 
-export const DEBUG_MODE = true; // 设为 false 关闭调试模式
+export const DEBUG_MODE = false; // 设为 false 关闭调试模式
 
 // 调试模式下的测试金额（元）
 export const DEBUG_AMOUNT = 0.1;

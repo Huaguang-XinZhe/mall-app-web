@@ -5,8 +5,6 @@
 
     <!-- 内容区域 -->
     <view class="content">
-      <!-- 只在微信小程序中显示完整功能 -->
-      <!-- #ifdef MP-WEIXIN -->
       <!-- 邀请码信息 -->
       <invite-code-section :invite-code="displayInviteCode"></invite-code-section>
 
@@ -29,13 +27,6 @@
       <!-- 邀请的用户列表 -->
       <invited-users-list :users="invitedUsers || []" :invited-count="withdrawInfo.invitedCount || 0">
       </invited-users-list>
-
-      <!-- #endif -->
-
-      <!-- 非微信小程序提示 -->
-      <!-- #ifndef MP-WEIXIN -->
-      <unsupported-platform></unsupported-platform>
-      <!-- #endif -->
     </view>
   </view>
 </template>
@@ -50,7 +41,6 @@ import InviteStatsSection from '@/components/user/invite-stats-section.vue';
 import WithdrawSection from '@/components/user/withdraw-section.vue';
 import WithdrawRecords from '@/components/user/withdraw-records.vue';
 import InvitedUsersList from '@/components/user/invited-users-list.vue';
-import UnsupportedPlatform from '@/components/user/unsupported-platform.vue';
 
 export default {
   components: {
@@ -59,8 +49,7 @@ export default {
     InviteStatsSection,
     WithdrawSection,
     WithdrawRecords,
-    InvitedUsersList,
-    UnsupportedPlatform
+    InvitedUsersList
   },
 
   data() {
@@ -84,7 +73,8 @@ export default {
       canWithdraw: false,
       withdrawRecords: [],
       withdrawStatusTimer: null,
-      withdrawStatusCheckCount: 0
+      withdrawStatusCheckCount: 0,
+      _isPageRevisited: false // 新增变量，用于判断页面是否是重新加载
     }
   },
 
@@ -119,10 +109,12 @@ export default {
   },
 
   onShow() {
-    // 页面显示时也刷新数据
-    if (this.hasLogin) {
+    // 页面显示时，只有在非首次加载时刷新数据
+    if (this.hasLogin && this._isPageRevisited) {
       this.loadWithdrawInfo();
     }
+    // 标记页面已经被访问过
+    this._isPageRevisited = true;
   },
 
   onUnload() {
@@ -248,13 +240,16 @@ export default {
           if (!this.inviteCode && this.withdrawInfo.inviteCode) {
             this.$store.commit('setInviteCode', this.withdrawInfo.inviteCode);
           }
+
+          // 只在首次加载或提现操作后获取邀请用户列表和提现记录
+          if (!this.invitedUsers.length || !this.withdrawRecords.length) {
+            // 获取邀请的用户列表
+            this.loadInvitedUsers();
+
+            // 获取提现记录
+            this.loadWithdrawRecords();
+          }
         }
-
-        // 获取邀请的用户列表
-        this.loadInvitedUsers();
-
-        // 获取提现记录
-        this.loadWithdrawRecords();
       } catch (error) {
         console.error('获取提现信息失败:', error);
         uni.showToast({
@@ -370,13 +365,15 @@ export default {
               setTimeout(() => {
                 uni.showModal({
                   title: '部分提现成功',
-                  content: `您已成功提现¥${transferData.amount}元，剩余金额可稍后继续提现。`,
+                  content: `您已成功提现¥${response.data.amount}元，剩余金额可稍后继续提现。`,
                   showCancel: false,
                   success: () => {
                     // 清除本地缓存，强制重新获取数据
                     uni.removeStorageSync('inviteInfo');
                     // 立即刷新提现信息和记录
                     this.fetchWithdrawInfo();
+                    // 强制重新获取提现记录
+                    this.loadWithdrawRecords();
                   }
                 });
               }, 1000);
@@ -392,6 +389,8 @@ export default {
                     uni.removeStorageSync('inviteInfo');
                     // 立即刷新提现信息和记录
                     this.fetchWithdrawInfo();
+                    // 强制重新获取提现记录
+                    this.loadWithdrawRecords();
                   }
                 });
               }, 1000);
@@ -427,6 +426,8 @@ export default {
           uni.removeStorageSync('inviteInfo');
           // 立即刷新提现信息和记录
           this.fetchWithdrawInfo();
+          // 强制重新获取提现记录
+          this.loadWithdrawRecords();
         } else {
           console.error('取消提现申请失败:', response.message);
         }
@@ -455,6 +456,8 @@ export default {
         console.log('轮询结束，最大次数已达到');
         // 最后再刷新一次数据
         this.fetchWithdrawInfo();
+        // 强制重新获取提现记录
+        this.loadWithdrawRecords();
         return;
       }
 

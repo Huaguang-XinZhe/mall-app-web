@@ -35,6 +35,13 @@ export function calculateWithdrawAmount(availableAmount, singleLimit, dailyLimit
     return result;
   }
   
+  // 检查微信支付最低限额要求（0.1元）
+  if (available < 0.1) {
+    result.canWithdraw = false;
+    result.limitedByMinimum = true;
+    return result;
+  }
+  
   // 检查单笔限额
   if (single > 0 && available > single) {
     result.actualAmount = single;
@@ -81,11 +88,14 @@ export function calculateWithdrawAmount(availableAmount, singleLimit, dailyLimit
  * @returns {String} 提示文本
  */
 export function generateLimitTips(withdrawInfo) {
-  const { isPartial, limitedBySingle, limitedByDaily, remainingCount, canWithdraw } = withdrawInfo;
+  const { isPartial, limitedBySingle, limitedByDaily, limitedByMinimum, remainingCount, canWithdraw } = withdrawInfo;
   
   if (!canWithdraw) {
     if (limitedByDaily) {
       return '今日提现额度已用完，请明天再试';
+    }
+    if (limitedByMinimum) {
+      return '提现金额不能低于0.1元，这是微信支付的最低限额要求';
     }
     return '暂无可提现金额';
   }

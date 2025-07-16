@@ -120,6 +120,14 @@ export function getWithdrawLimits() {
   });
 }
 
+// 预验证提现金额
+export function verifyWithdrawAmount() {
+  return authRequest({
+    method: "POST",
+    url: "/api/withdraw/verify"
+  });
+}
+
 // === 原有商城相关接口（保持兼容） ===
 
 // 获取用户邀请码（如果原系统有的话）
