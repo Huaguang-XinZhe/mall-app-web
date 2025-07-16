@@ -95,6 +95,14 @@ export function requestWithdraw(params) {
   });
 }
 
+// 取消提现申请
+export function cancelWithdraw() {
+  return authRequest({
+    method: "POST",
+    url: "/api/withdraw/cancel",
+  });
+}
+
 // 获取提现记录
 export function getWithdrawRecords(params) {
   return authRequest({

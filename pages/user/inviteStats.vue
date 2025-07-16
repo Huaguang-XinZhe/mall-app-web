@@ -42,8 +42,7 @@
 
 <script>
 import { mapState } from 'vuex';
-import { getInviteStats, getInviteWithdrawInfo, requestWithdraw, getWithdrawRecords } from '@/api/user.js';
-import { AUTH_API_BASE_URL } from '@/utils/appConfig.js';
+import { getInviteStats, getInviteWithdrawInfo, requestWithdraw, getWithdrawRecords, cancelWithdraw } from '@/api/user.js';
 import { calculateWithdrawAmount } from '@/utils/withdrawUtils.js';
 import CustomNav from '@/components/user/custom-nav.vue';
 import InviteCodeSection from '@/components/user/invite-code-section.vue';
@@ -344,8 +343,11 @@ export default {
                   }, 1500);
                 },
                 fail: (res) => {
+                  // 用户取消或关闭了收款确认弹窗，调用取消提现接口
+                  this.cancelWithdrawRequest();
+
                   uni.showToast({
-                    title: '收款确认失败',
+                    title: '收款确认已取消',
                     icon: 'none'
                   });
                 }
@@ -410,6 +412,26 @@ export default {
         });
       } finally {
         this.withdrawLoading = false;
+      }
+    },
+
+    // 取消提现申请
+    async cancelWithdrawRequest() {
+      try {
+        console.log('取消提现申请');
+        const response = await cancelWithdraw();
+
+        if (response.success) {
+          console.log('提现申请已取消');
+          // 清除本地缓存，强制重新获取数据
+          uni.removeStorageSync('inviteInfo');
+          // 立即刷新提现信息和记录
+          this.fetchWithdrawInfo();
+        } else {
+          console.error('取消提现申请失败:', response.message);
+        }
+      } catch (error) {
+        console.error('取消提现申请失败:', error);
       }
     },
 

@@ -9,7 +9,8 @@
             <view class="record-status" :class="{
                 'status-processing': record.status === 'PROCESSING',
                 'status-success': record.status === 'SUCCESS',
-                'status-failed': record.status === 'FAILED'
+                'status-failed': record.status === 'FAILED',
+                'status-cancelled': record.status === 'CANCELLED'
             }">
                 {{ getStatusText(record.status) }}
             </view>
@@ -66,7 +67,8 @@ export default {
             const statusMap = {
                 'PROCESSING': '处理中',
                 'SUCCESS': '成功',
-                'FAILED': '失败'
+                'FAILED': '失败',
+                'CANCELLED': '已取消'
             };
             return statusMap[status] || '未知';
         }
@@ -129,6 +131,10 @@ export default {
 
             &.status-failed {
                 color: #ff3b30;
+            }
+
+            &.status-cancelled {
+                color: #8e8e93;
             }
         }
     }
