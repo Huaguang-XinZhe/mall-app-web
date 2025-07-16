@@ -1,131 +1,38 @@
 <template>
   <view class="container">
     <!-- 导航栏 -->
-    <view class="custom-nav">
-      <view class="nav-back" @click="goBack">
-        <text class="back-icon">〈</text>
-      </view>
-      <text class="nav-title">邀请提现</text>
-    </view>
-    
+    <custom-nav title="邀请提现" @back="goBack"></custom-nav>
+
     <!-- 内容区域 -->
     <view class="content">
       <!-- 只在微信小程序中显示完整功能 -->
       <!-- #ifdef MP-WEIXIN -->
       <!-- 邀请码信息 -->
-      <view class="invite-code-section">
-        <view class="code-display">
-          <text class="label">我的邀请码</text>
-          <view class="code-box">
-            <text class="code">{{ withdrawInfo.inviteCode || '暂无' }}</text>
-            <view class="copy-btn" @click="copyInviteCode">
-              <text class="yticon icon-fuzhi"></text>
-              <text>复制</text>
-            </view>
-          </view>
-        </view>
-      </view>
-      
+      <invite-code-section :invite-code="displayInviteCode"></invite-code-section>
+
       <!-- 邀请统计 -->
-      <view class="stats-section">
-        <view class="stats-grid">
-          <view class="stats-item">
-            <text class="stats-number">{{ withdrawInfo.invitedCount || 0 }}</text>
-            <text class="stats-label">已邀请人数</text>
-          </view>
-          <view class="stats-item">
-            <text class="stats-number">{{ withdrawInfo.commissionRate * 100 }}%</text>
-            <text class="stats-label">分成比例</text>
-          </view>
-          <view class="stats-item">
-            <text class="stats-number">¥{{ withdrawInfo.totalOrderAmount || '0.00' }}</text>
-            <text class="stats-label">订单总金额</text>
-          </view>
-        </view>
-      </view>
-      
+      <invite-stats-section :invited-count="withdrawInfo.invitedCount || 0"
+        :commission-rate="withdrawInfo.commissionRate || 0.3"
+        :total-order-amount="withdrawInfo.totalOrderAmount || '0.00'">
+      </invite-stats-section>
+
       <!-- 提现板块 -->
-      <view class="withdraw-section">
-        <view class="section-title">申请提现</view>
-        <view class="withdraw-card">
-          <view class="available-amount">
-            <text class="label">可提现金额</text>
-            <text class="amount">¥{{ withdrawInfo.availableCommission || '0.00' }}</text>
-          </view>
-          
-          <view class="withdraw-form">
-            <!-- 移除提现金额输入框，改为全额提现 -->
-            <view class="withdraw-tips">
-              <text>提现说明：</text>
-              <text>1. 提现将全额提取可提现金额</text>
-              <text>2. 提现将直接转入您的微信钱包</text>
-            </view>
-            
-            <view class="test-mode-switch" v-if="isDev">
-              <text class="switch-label">使用测试模式:</text>
-              <switch :checked="useTestMode" @change="toggleTestMode" color="#ff9500" />
-              <text class="switch-hint">{{ useTestMode ? '模拟转账' : '真实转账' }}</text>
-            </view>
-            
-            <button 
-              class="withdraw-btn" 
-              :disabled="!canWithdraw || withdrawLoading" 
-              :class="{ disabled: !canWithdraw || withdrawLoading }"
-              @click="submitWithdraw"
-            >{{ withdrawLoading ? '处理中...' : '申请提现' }}</button>
-          </view>
-        </view>
-      </view>
-      
+      <withdraw-section :available-commission="withdrawInfo.availableCommission || '0.00'" :can-withdraw="canWithdraw"
+        :withdraw-loading="withdrawLoading" @withdraw="submitWithdraw">
+      </withdraw-section>
+
       <!-- 提现记录 -->
-      <view class="withdraw-records" v-if="withdrawRecords.length > 0">
-        <view class="section-title">提现记录</view>
-        <view class="record-item" v-for="record in withdrawRecords" :key="record.id">
-          <view class="record-left">
-            <text class="record-amount">¥{{ record.amount }}</text>
-            <text class="record-time">{{ formatDate(record.createTime) }}</text>
-          </view>
-          <view class="record-status" :class="{
-            'status-processing': record.status === 'PROCESSING',
-            'status-success': record.status === 'SUCCESS',
-            'status-failed': record.status === 'FAILED'
-          }">
-            {{ getStatusText(record.status) }}
-          </view>
-        </view>
-      </view>
-      
+      <withdraw-records :records="withdrawRecords || []"></withdraw-records>
+
       <!-- 邀请的用户列表 -->
-      <view class="invited-list" v-if="invitedUsers && invitedUsers.length > 0">
-        <view class="section-title">已邀请的用户</view>
-        <view class="user-item" v-for="user in invitedUsers" :key="user.id">
-          <image 
-            class="avatar" 
-            :src="user.avatar_url || 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/missing-face.png'"
-            mode="aspectFill"
-          />
-          <view class="user-info">
-            <text class="nickname">{{ user.nickname || '用户' + user.id }}</text>
-            <text class="join-time">加入时间：{{ formatTime(user.created_at) }}</text>
-          </view>
-        </view>
-      </view>
-      
-      <view class="empty-state" v-else-if="withdrawInfo.invitedCount === 0">
-        <text class="empty-text">还没有邀请过用户</text>
-        <text class="empty-hint">分享邀请码给好友，他们注册成功后会显示在这里</text>
-      </view>
+      <invited-users-list :users="invitedUsers || []" :invited-count="withdrawInfo.invitedCount || 0">
+      </invited-users-list>
+
       <!-- #endif -->
-      
+
       <!-- 非微信小程序提示 -->
       <!-- #ifndef MP-WEIXIN -->
-      <view class="unsupported-platform">
-        <image class="hint-icon" src="https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/missing-face.png" mode="aspectFit" />
-        <view class="hint-text">
-          <text>邀请功能仅支持微信小程序</text>
-          <text>请在微信中使用此功能</text>
-        </view>
-      </view>
+      <unsupported-platform></unsupported-platform>
       <!-- #endif -->
     </view>
   </view>
@@ -134,8 +41,26 @@
 <script>
 import { mapState } from 'vuex';
 import { getInviteStats, getInviteWithdrawInfo, requestWithdraw, getWithdrawRecords } from '@/api/user.js';
+import { AUTH_API_BASE_URL } from '@/utils/appConfig.js';
+import CustomNav from '@/components/user/custom-nav.vue';
+import InviteCodeSection from '@/components/user/invite-code-section.vue';
+import InviteStatsSection from '@/components/user/invite-stats-section.vue';
+import WithdrawSection from '@/components/user/withdraw-section.vue';
+import WithdrawRecords from '@/components/user/withdraw-records.vue';
+import InvitedUsersList from '@/components/user/invited-users-list.vue';
+import UnsupportedPlatform from '@/components/user/unsupported-platform.vue';
 
 export default {
+  components: {
+    CustomNav,
+    InviteCodeSection,
+    InviteStatsSection,
+    WithdrawSection,
+    WithdrawRecords,
+    InvitedUsersList,
+    UnsupportedPlatform
+  },
+
   data() {
     return {
       withdrawInfo: {
@@ -151,29 +76,52 @@ export default {
       withdrawLoading: false,
       canWithdraw: false,
       withdrawRecords: [],
-      useTestMode: true,
-      isDev: process.env.NODE_ENV === 'development'
+      withdrawStatusTimer: null,
+      withdrawStatusCheckCount: 0
     }
   },
-  
+
   computed: {
-    ...mapState(['hasLogin', 'userInfo', 'inviteCode'])
+    ...mapState(['hasLogin', 'userInfo', 'inviteCode']),
+    // 确保使用store中的邀请码作为备用
+    displayInviteCode() {
+      return this.withdrawInfo.inviteCode || this.inviteCode || '';
+    }
   },
-  
+
   onLoad() {
+    console.log('页面加载 - store中的邀请码:', this.inviteCode);
+    console.log('页面加载 - 用户信息:', JSON.stringify(this.userInfo).substring(0, 100));
+
     if (this.hasLogin) {
+      // 初始化数据，确保有默认值
+      this.withdrawInfo.inviteCode = this.inviteCode || '';
       this.loadWithdrawInfo();
     } else {
       this.redirectToLogin();
     }
   },
-  
+
+  onShow() {
+    // 页面显示时也刷新数据
+    if (this.hasLogin) {
+      this.loadWithdrawInfo();
+    }
+  },
+
+  onUnload() {
+    // 页面卸载时清除定时器
+    if (this.withdrawStatusTimer) {
+      clearTimeout(this.withdrawStatusTimer);
+    }
+  },
+
   // #ifdef MP-WEIXIN
   onShareAppMessage() {
-    if (this.inviteCode) {
+    if (this.displayInviteCode) {
       return {
         title: '邀请您加入商城，注册即享优惠',
-        path: `/pages/index/index?inviteCode=${this.inviteCode}`,
+        path: `/pages/index/index?inviteCode=${this.displayInviteCode}`,
         imageUrl: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg'
       };
     }
@@ -183,13 +131,13 @@ export default {
     };
   },
   // #endif
-  
+
   // #ifdef MP-WEIXIN
   onShareTimeline() {
-    if (this.inviteCode) {
+    if (this.displayInviteCode) {
       return {
         title: '邀请您加入商城，注册即享优惠',
-        query: `inviteCode=${this.inviteCode}`,
+        query: `inviteCode=${this.displayInviteCode}`,
         imageUrl: 'https://boyangchuanggu-mall.oss-cn-guangzhou.aliyuncs.com/static/user-bg.jpg'
       };
     }
@@ -198,12 +146,12 @@ export default {
     };
   },
   // #endif
-  
+
   methods: {
     goBack() {
       uni.navigateBack();
     },
-    
+
     redirectToLogin() {
       uni.showModal({
         title: '未登录',
@@ -219,29 +167,15 @@ export default {
         }
       });
     },
-    
+
     async loadWithdrawInfo() {
       if (this.loading) return;
-      
+
       try {
         this.loading = true;
-        
-        // 检查本地缓存中是否有邀请信息，且未过期
-        const cachedInviteInfo = uni.getStorageSync('inviteInfo');
-        const now = new Date().getTime();
-        
-        if (cachedInviteInfo && cachedInviteInfo.expireTime > now) {
-          console.log('使用本地缓存的邀请信息:', cachedInviteInfo);
-          // 使用本地缓存的基本信息
-          this.withdrawInfo.inviteCode = cachedInviteInfo.inviteCode;
-          this.withdrawInfo.invitedCount = cachedInviteInfo.invitedCount;
-          
-          // 仍然需要获取提现相关信息
-          this.fetchWithdrawInfo();
-        } else {
-          // 直接获取完整的提现信息
-          this.fetchWithdrawInfo();
-        }
+
+        // 提现后必须获取最新数据，不使用缓存
+        this.fetchWithdrawInfo();
       } catch (error) {
         console.error('加载提现信息失败:', error);
         uni.showToast({
@@ -252,40 +186,52 @@ export default {
         this.loading = false;
       }
     },
-    
+
     async fetchWithdrawInfo() {
       try {
-        const response = await getInviteWithdrawInfo();
-        
+        // 添加时间戳参数避免缓存
+        const timestamp = new Date().getTime();
+        console.log(`开始获取提现信息，时间戳：${timestamp}`);
+        const response = await getInviteWithdrawInfo({ _t: timestamp });
+
         if (response.success && response.data) {
+          console.log('提现信息获取成功:', response.data);
+
+          // 确保所有字段都有默认值
           this.withdrawInfo = {
-            inviteCode: response.data.inviteCode,
-            invitedCount: response.data.invitedCount,
-            commissionRate: response.data.commissionRate,
-            totalOrderAmount: response.data.totalOrderAmount,
-            availableCommission: response.data.availableCommission,
-            openid: response.data.openid,
-            processingWithdraw: response.data.processingWithdraw
+            inviteCode: response.data.inviteCode || this.inviteCode || '',
+            invitedCount: response.data.invitedCount || 0,
+            commissionRate: response.data.commissionRate || 0.3,
+            totalOrderAmount: response.data.totalOrderAmount || '0.00',
+            availableCommission: response.data.availableCommission || '0.00',
+            openid: response.data.openid || '',
+            processingWithdraw: response.data.processingWithdraw || false
           };
-          
+
           // 判断是否可以提现
           const availableAmount = parseFloat(this.withdrawInfo.availableCommission);
+          console.log(`可提现金额: ${availableAmount}, 处理中提现: ${this.withdrawInfo.processingWithdraw ? 'true' : 'false'}`);
           this.canWithdraw = availableAmount > 0 && !this.withdrawInfo.processingWithdraw;
-          
-          // 存储到本地缓存，设置1分钟过期时间
+
+          // 更新本地缓存，设置短暂过期时间
           const now = new Date().getTime();
           const inviteInfo = {
-            inviteCode: response.data.inviteCode,
-            invitedCount: response.data.invitedCount,
-            openid: response.data.openid,
-            expireTime: now + 60000 // 当前时间 + 1分钟
+            inviteCode: this.withdrawInfo.inviteCode,
+            invitedCount: this.withdrawInfo.invitedCount,
+            openid: this.withdrawInfo.openid,
+            expireTime: now + 10000 // 当前时间 + 10秒，确保频繁刷新
           };
           uni.setStorageSync('inviteInfo', inviteInfo);
+
+          // 如果store中没有邀请码但API返回了，更新store
+          if (!this.inviteCode && this.withdrawInfo.inviteCode) {
+            this.$store.commit('setInviteCode', this.withdrawInfo.inviteCode);
+          }
         }
-        
+
         // 获取邀请的用户列表
         this.loadInvitedUsers();
-        
+
         // 获取提现记录
         this.loadWithdrawRecords();
       } catch (error) {
@@ -296,11 +242,13 @@ export default {
         });
       }
     },
-    
+
     async loadInvitedUsers() {
       try {
-        const response = await getInviteStats();
-        
+        // 添加时间戳参数避免缓存
+        const timestamp = new Date().getTime();
+        const response = await getInviteStats({ _t: timestamp });
+
         if (response.success && response.data) {
           this.invitedUsers = response.data.invitedUsers || [];
         }
@@ -308,11 +256,13 @@ export default {
         console.error('获取邀请用户列表失败:', error);
       }
     },
-    
+
     async loadWithdrawRecords() {
       try {
-        const response = await getWithdrawRecords();
-        
+        // 添加时间戳参数避免缓存
+        const timestamp = new Date().getTime();
+        const response = await getWithdrawRecords({ _t: timestamp });
+
         if (response.success && response.data) {
           this.withdrawRecords = response.data.records || [];
         }
@@ -320,45 +270,53 @@ export default {
         console.error('获取提现记录失败:', error);
       }
     },
-    
+
     async submitWithdraw() {
       if (!this.canWithdraw || this.withdrawLoading) return;
-      
+
       try {
         this.withdrawLoading = true;
-        
+
         uni.showLoading({
           title: '提交中...'
         });
-        
-        const response = await requestWithdraw({
-          testMode: this.useTestMode,
-          remark: '邀请奖励提现'
-        });
-        
+
+        // 构建提现数据
+        const transferData = {
+          amount: parseFloat(this.withdrawInfo.availableCommission),
+          transfer_remark: '邀请好友奖励活动'
+        };
+
+        // 调用后端API
+        const response = await requestWithdraw(transferData);
+
         uni.hideLoading();
-        
+
         if (response.success) {
-          // 如果有 packageInfo，需要拉起微信收款确认页面
-          const packageInfo = response.data.packageInfo;
-          
+          // 获取 package_info 用于拉起微信收款确认页面
+          const packageInfo = response.data.packageInfo || response.data.package_info;
+
           if (packageInfo) {
             // #ifdef MP-WEIXIN
             if (wx.canIUse('requestMerchantTransfer')) {
               wx.requestMerchantTransfer({
-                mchId: process.env.WECHAT_MCH_ID || '1721095761', 
+                mchId: process.env.WECHAT_MCH_ID || '1721095761',
                 appId: wx.getAccountInfoSync().miniProgram.appId,
                 package: packageInfo,
-                success: (res) => {
-                  uni.showModal({
+                success: () => {
+                  // 提示用户提现申请已提交，但需要等待处理
+                  uni.showToast({
                     title: '提现申请已提交',
-                    content: `提现金额: ¥${response.data.amount}\n审核通过后将转入您的微信钱包`,
-                    showCancel: false,
-                    success: () => {
-                      // 刷新提现信息
-                      this.fetchWithdrawInfo();
-                    }
+                    icon: 'success'
                   });
+
+                  // 显示更详细的提示
+                  setTimeout(() => {
+                    // 清除本地缓存，强制重新获取数据
+                    uni.removeStorageSync('inviteInfo');
+                    // 开始轮询检查提现状态
+                    this.startWithdrawStatusCheck();
+                  }, 1500);
                 },
                 fail: (res) => {
                   uni.showToast({
@@ -375,15 +333,27 @@ export default {
             }
             // #endif
           } else {
-            uni.showModal({
+            uni.showToast({
               title: '提现申请已提交',
-              content: `提现金额: ¥${response.data.amount}\n审核通过后将转入您的微信钱包`,
-              showCancel: false,
-              success: () => {
-                // 刷新提现信息
-                this.fetchWithdrawInfo();
-              }
+              icon: 'success'
             });
+
+            // 显示更详细的提示
+            setTimeout(() => {
+              uni.showModal({
+                title: '提现处理中',
+                content: '您的提现申请已提交，系统将在1-2分钟内处理。如果您已确认收款，请稍后刷新页面查看结果。',
+                showCancel: false,
+                success: () => {
+                  // 延迟刷新数据，确保后端处理完成
+                  console.log('提现申请已提交，延迟刷新数据');
+                  // 清除本地缓存，强制重新获取数据
+                  uni.removeStorageSync('inviteInfo');
+                  // 立即刷新提现信息和记录
+                  this.fetchWithdrawInfo();
+                }
+              });
+            }, 1000);
           }
         } else {
           uni.showToast({
@@ -402,62 +372,40 @@ export default {
         this.withdrawLoading = false;
       }
     },
-    
-    toggleTestMode(e) {
-      this.useTestMode = e.detail.value;
+
+    // 开始轮询检查提现状态
+    startWithdrawStatusCheck() {
+      console.log('开始轮询检查提现状态');
+      // 清除可能存在的上一次轮询
+      if (this.withdrawStatusTimer) {
+        clearTimeout(this.withdrawStatusTimer);
+      }
+
+      // 设置轮询次数和间隔
+      this.withdrawStatusCheckCount = 0;
+      this.checkWithdrawStatus();
     },
-    
-    copyInviteCode() {
-      if (!this.withdrawInfo.inviteCode) {
-        uni.showToast({
-          title: '暂无邀请码',
-          icon: 'none'
-        });
+
+    // 检查提现状态
+    checkWithdrawStatus() {
+      // 最多轮询2次，每次间隔5秒
+      if (this.withdrawStatusCheckCount >= 2) {
+        console.log('轮询结束，最大次数已达到');
+        // 最后再刷新一次数据
+        this.fetchWithdrawInfo();
         return;
       }
-      
-      uni.setClipboardData({
-        data: this.withdrawInfo.inviteCode,
-        success: () => {
-          uni.showToast({
-            title: '邀请码已复制',
-            icon: 'success'
-          });
-        }
-      });
-    },
-    
-    formatTime(timeStr) {
-      if (!timeStr) return '';
-      const date = new Date(timeStr);
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-      
-      if (days === 0) {
-        return '今天';
-      } else if (days === 1) {
-        return '昨天';
-      } else if (days < 30) {
-        return `${days}天前`;
-      } else {
-        return date.toLocaleDateString();
-      }
-    },
-    
-    formatDate(dateStr) {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-    },
-    
-    getStatusText(status) {
-      const statusMap = {
-        'PROCESSING': '处理中',
-        'SUCCESS': '成功',
-        'FAILED': '失败'
-      };
-      return statusMap[status] || '未知';
+
+      this.withdrawStatusCheckCount++;
+      console.log(`第${this.withdrawStatusCheckCount}次检查提现状态`);
+
+      // 获取最新提现信息
+      this.fetchWithdrawInfo();
+
+      // 设置下一次检查的定时器
+      this.withdrawStatusTimer = setTimeout(() => {
+        this.checkWithdrawStatus();
+      }, 5000); // 5秒检查一次
     }
   }
 }
@@ -469,345 +417,7 @@ export default {
   background: #f5f5f5;
 }
 
-.custom-nav {
-  position: relative;
-  height: 180upx;
-  background-color: #FA436A;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding-bottom: 20upx;
-  
-  .nav-back {
-    position: absolute;
-    left: 30upx;
-    bottom: 20upx;
-    width: 60upx;
-    height: 60upx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    .back-icon {
-      color: #fff;
-      font-size: 44upx;
-      font-weight: bold;
-    }
-  }
-  
-  .nav-title {
-    color: #fff;
-    font-size: 36upx;
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 10upx;
-  }
-}
-
 .content {
   padding: 20upx;
 }
-
-.section-title {
-  display: block;
-  font-size: 32upx;
-  color: #333;
-  margin: 40upx 0 20upx 0;
-  font-weight: bold;
-}
-
-.invite-code-section {
-  background: #fff;
-  border-radius: 12upx;
-  padding: 30upx;
-  margin-bottom: 20upx;
-  box-shadow: 0 2upx 8upx rgba(0, 0, 0, 0.1);
-}
-
-.code-display {
-  .label {
-    display: block;
-    font-size: 28upx;
-    color: #666;
-    margin-bottom: 20upx;
-  }
-  
-  .code-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    
-    .code {
-      font-size: 36upx;
-      font-weight: bold;
-      color: #FA436A;
-      letter-spacing: 4upx;
-    }
-    
-    .copy-btn {
-      display: flex;
-      align-items: center;
-      background: #FA436A;
-      color: #fff;
-      padding: 12upx 24upx;
-      border-radius: 8upx;
-      font-size: 24upx;
-      
-      .yticon {
-        margin-right: 10upx;
-        font-size: 24upx;
-      }
-    }
-  }
-}
-
-.stats-section {
-  margin-bottom: 20upx;
-  
-  .stats-grid {
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  .stats-item {
-    flex: 1;
-    text-align: center;
-    background: #fff;
-    border-radius: 12upx;
-    padding: 20upx 0;
-    margin: 0 10upx;
-    box-shadow: 0 2upx 8upx rgba(0, 0, 0, 0.1);
-    
-    &:first-child {
-      margin-left: 0;
-    }
-    
-    &:last-child {
-      margin-right: 0;
-    }
-    
-    .stats-number {
-      display: block;
-      font-size: 32upx;
-      font-weight: bold;
-      color: #FA436A;
-      margin-bottom: 10upx;
-    }
-    
-    .stats-label {
-      font-size: 24upx;
-      color: #666;
-    }
-  }
-}
-
-.withdraw-section {
-  background: #fff;
-  border-radius: 12upx;
-  padding: 30upx;
-  margin-bottom: 20upx;
-  box-shadow: 0 2upx 8upx rgba(0, 0, 0, 0.1);
-  
-  .available-amount {
-    margin-bottom: 30upx;
-    
-    .label {
-      font-size: 28upx;
-      color: #666;
-      margin-bottom: 10upx;
-      display: block;
-    }
-    
-    .amount {
-      font-size: 48upx;
-      font-weight: bold;
-      color: #FA436A;
-    }
-  }
-  
-  .withdraw-form {
-    .withdraw-tips {
-      margin: 30upx 0;
-      
-      text {
-        display: block;
-        font-size: 24upx;
-        color: #999;
-        line-height: 1.6;
-      }
-    }
-    
-    .withdraw-btn {
-      background: #FA436A;
-      color: #fff;
-      border-radius: 50upx;
-      height: 90upx;
-      line-height: 90upx;
-      font-size: 32upx;
-      font-weight: bold;
-      box-shadow: 0 4upx 8upx rgba(250, 67, 106, 0.3);
-      
-      &.disabled {
-        background: #ccc;
-        box-shadow: none;
-      }
-    }
-  }
-}
-
-.test-mode-switch {
-  display: flex;
-  align-items: center;
-  margin-bottom: 30upx;
-  padding-left: 20upx;
-
-  .switch-label {
-    font-size: 28upx;
-    color: #666;
-    margin-right: 15upx;
-  }
-
-  .switch-hint {
-    font-size: 24upx;
-    color: #999;
-    margin-left: 10upx;
-  }
-}
-
-.withdraw-records {
-  background: #fff;
-  border-radius: 12upx;
-  padding: 30upx;
-  margin-bottom: 20upx;
-  box-shadow: 0 2upx 8upx rgba(0, 0, 0, 0.1);
-  
-  .record-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20upx 0;
-    border-bottom: 1px solid #f0f0f0;
-    
-    &:last-child {
-      border-bottom: none;
-    }
-    
-    .record-left {
-      .record-amount {
-        font-size: 32upx;
-        font-weight: bold;
-        color: #333;
-        display: block;
-        margin-bottom: 8upx;
-      }
-      
-      .record-time {
-        font-size: 24upx;
-        color: #999;
-      }
-    }
-    
-    .record-status {
-      font-size: 28upx;
-      
-      &.status-processing {
-        color: #007aff;
-      }
-      
-      &.status-success {
-        color: #34c759;
-      }
-      
-      &.status-failed {
-        color: #ff3b30;
-      }
-    }
-  }
-}
-
-.invited-list {
-  background: #fff;
-  border-radius: 12upx;
-  overflow: hidden;
-  margin-bottom: 20upx;
-  box-shadow: 0 2upx 8upx rgba(0, 0, 0, 0.1);
-}
-
-.user-item {
-  display: flex;
-  align-items: center;
-  padding: 30upx;
-  border-bottom: 1upx solid #f0f0f0;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  .avatar {
-    width: 80upx;
-    height: 80upx;
-    border-radius: 50%;
-    margin-right: 24upx;
-  }
-  
-  .user-info {
-    flex: 1;
-    
-    .nickname {
-      display: block;
-      font-size: 32upx;
-      color: #333;
-      margin-bottom: 8upx;
-    }
-    
-    .join-time {
-      font-size: 24upx;
-      color: #999;
-    }
-  }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40upx 60upx;
-  margin-top: 30upx;
-  background: #fff;
-  border-radius: 12upx;
-  box-shadow: 0 2upx 8upx rgba(0, 0, 0, 0.1);
-  
-  .empty-text {
-    display: block;
-    font-size: 32upx;
-    color: #666;
-    margin-bottom: 20upx;
-  }
-  
-  .empty-hint {
-    font-size: 28upx;
-    color: #999;
-    line-height: 1.6;
-  }
-}
-
-.unsupported-platform {
-  text-align: center;
-  padding: 120upx 60upx;
-  
-  .hint-icon {
-    width: 200upx;
-    height: 200upx;
-    margin-bottom: 40upx;
-    opacity: 0.6;
-  }
-  
-  .hint-text {
-    text {
-      display: block;
-      font-size: 32upx;
-      color: #666;
-      line-height: 1.6;
-      margin-bottom: 20upx;
-    }
-  }
-}
-</style> 
+</style>
