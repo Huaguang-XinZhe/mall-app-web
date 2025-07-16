@@ -19,6 +19,9 @@ export function phoneLogin(params) {
     method: "POST",
     url: "/api/auth/phoneLogin",
     data: params,
+    header: {
+      'content-type': 'application/json;charset=UTF-8'
+    }
   });
 }
 // #endif
@@ -75,10 +78,11 @@ export function getInviteStats() {
 }
 
 // 获取邀请提现信息
-export function getInviteWithdrawInfo() {
+export function getInviteWithdrawInfo(params) {
   return authRequest({
     method: "GET",
     url: "/api/withdraw/info",
+    params: params
   });
 }
 
@@ -97,6 +101,14 @@ export function getWithdrawRecords(params) {
     method: "GET",
     url: "/api/withdraw/records",
     params: params,
+  });
+}
+
+// 获取提现限额信息
+export function getWithdrawLimits() {
+  return authRequest({
+    method: "GET",
+    url: "/api/withdraw/limits",
   });
 }
 

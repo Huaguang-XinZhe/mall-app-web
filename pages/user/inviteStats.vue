@@ -18,7 +18,9 @@
 
       <!-- 提现板块 -->
       <withdraw-section :available-commission="withdrawInfo.availableCommission || '0.00'" :can-withdraw="canWithdraw"
-        :withdraw-loading="withdrawLoading" @withdraw="submitWithdraw">
+        :withdraw-loading="withdrawLoading" :single-limit="withdrawInfo.singleLimit || 0"
+        :daily-limit="withdrawInfo.dailyLimit || 0" :daily-used="withdrawInfo.dailyUsed || 0"
+        @withdraw="submitWithdraw">
       </withdraw-section>
 
       <!-- 提现记录 -->
@@ -42,6 +44,7 @@
 import { mapState } from 'vuex';
 import { getInviteStats, getInviteWithdrawInfo, requestWithdraw, getWithdrawRecords } from '@/api/user.js';
 import { AUTH_API_BASE_URL } from '@/utils/appConfig.js';
+import { calculateWithdrawAmount } from '@/utils/withdrawUtils.js';
 import CustomNav from '@/components/user/custom-nav.vue';
 import InviteCodeSection from '@/components/user/invite-code-section.vue';
 import InviteStatsSection from '@/components/user/invite-stats-section.vue';
@@ -69,7 +72,12 @@ export default {
         commissionRate: 0.3,
         totalOrderAmount: '0.00',
         availableCommission: '0.00',
-        openid: ''
+        openid: '',
+        // 新增提现限额相关字段
+        singleLimit: 0,      // 单笔提现限额
+        dailyLimit: 0,       // 日提现限额
+        dailyUsed: 0,        // 今日已使用额度
+        processingWithdraw: false
       },
       invitedUsers: [],
       loading: false,
@@ -86,6 +94,15 @@ export default {
     // 确保使用store中的邀请码作为备用
     displayInviteCode() {
       return this.withdrawInfo.inviteCode || this.inviteCode || '';
+    },
+    // 计算实际可提现状态
+    withdrawResult() {
+      return calculateWithdrawAmount(
+        this.withdrawInfo.availableCommission,
+        this.withdrawInfo.singleLimit,
+        this.withdrawInfo.dailyLimit,
+        this.withdrawInfo.dailyUsed
+      );
     }
   },
 
@@ -205,13 +222,18 @@ export default {
             totalOrderAmount: response.data.totalOrderAmount || '0.00',
             availableCommission: response.data.availableCommission || '0.00',
             openid: response.data.openid || '',
-            processingWithdraw: response.data.processingWithdraw || false
+            processingWithdraw: response.data.processingWithdraw || false,
+            // 新增提现限额相关字段
+            singleLimit: response.data.singleLimit || 0,
+            dailyLimit: response.data.dailyLimit || 0,
+            dailyUsed: response.data.dailyUsed || 0
           };
 
-          // 判断是否可以提现
-          const availableAmount = parseFloat(this.withdrawInfo.availableCommission);
-          console.log(`可提现金额: ${availableAmount}, 处理中提现: ${this.withdrawInfo.processingWithdraw ? 'true' : 'false'}`);
-          this.canWithdraw = availableAmount > 0 && !this.withdrawInfo.processingWithdraw;
+          // 使用withdrawResult计算是否可以提现
+          this.canWithdraw = this.withdrawResult.canWithdraw && !this.withdrawInfo.processingWithdraw;
+
+          console.log('提现计算结果:', this.withdrawResult);
+          console.log(`可提现状态: ${this.canWithdraw ? '可提现' : '不可提现'}`);
 
           // 更新本地缓存，设置短暂过期时间
           const now = new Date().getTime();
@@ -271,7 +293,7 @@ export default {
       }
     },
 
-    async submitWithdraw() {
+    async submitWithdraw(withdrawData) {
       if (!this.canWithdraw || this.withdrawLoading) return;
 
       try {
@@ -283,9 +305,12 @@ export default {
 
         // 构建提现数据
         const transferData = {
-          amount: parseFloat(this.withdrawInfo.availableCommission),
-          transfer_remark: '邀请好友奖励活动'
+          amount: withdrawData && withdrawData.amount ? parseFloat(withdrawData.amount) : parseFloat(this.withdrawInfo.availableCommission),
+          transfer_remark: '邀请好友奖励活动',
+          is_partial: withdrawData && withdrawData.isPartial ? true : false
         };
+
+        console.log('提交提现请求:', transferData);
 
         // 调用后端API
         const response = await requestWithdraw(transferData);
@@ -338,22 +363,37 @@ export default {
               icon: 'success'
             });
 
-            // 显示更详细的提示
-            setTimeout(() => {
-              uni.showModal({
-                title: '提现处理中',
-                content: '您的提现申请已提交，系统将在1-2分钟内处理。如果您已确认收款，请稍后刷新页面查看结果。',
-                showCancel: false,
-                success: () => {
-                  // 延迟刷新数据，确保后端处理完成
-                  console.log('提现申请已提交，延迟刷新数据');
-                  // 清除本地缓存，强制重新获取数据
-                  uni.removeStorageSync('inviteInfo');
-                  // 立即刷新提现信息和记录
-                  this.fetchWithdrawInfo();
-                }
-              });
-            }, 1000);
+            // 如果是部分提现，显示特殊提示
+            if (transferData.is_partial) {
+              setTimeout(() => {
+                uni.showModal({
+                  title: '部分提现成功',
+                  content: `您已成功提现¥${transferData.amount}元，剩余金额可稍后继续提现。`,
+                  showCancel: false,
+                  success: () => {
+                    // 清除本地缓存，强制重新获取数据
+                    uni.removeStorageSync('inviteInfo');
+                    // 立即刷新提现信息和记录
+                    this.fetchWithdrawInfo();
+                  }
+                });
+              }, 1000);
+            } else {
+              // 全额提现，显示普通提示
+              setTimeout(() => {
+                uni.showModal({
+                  title: '提现处理中',
+                  content: '您的提现申请已提交，系统将在1-2分钟内处理。如果您已确认收款，请稍后刷新页面查看结果。',
+                  showCancel: false,
+                  success: () => {
+                    // 清除本地缓存，强制重新获取数据
+                    uni.removeStorageSync('inviteInfo');
+                    // 立即刷新提现信息和记录
+                    this.fetchWithdrawInfo();
+                  }
+                });
+              }, 1000);
+            }
           }
         } else {
           uni.showToast({
